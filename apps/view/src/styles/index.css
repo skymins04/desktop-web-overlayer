@@ -1,0 +1,28 @@
+/* @tailwind base; */
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  background-color: transparent !important;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+#frame-top div {
+  -webkit-app-region: drag;
+}
+
+.ignore-mouse-event {
+  pointer-events: none;
+}

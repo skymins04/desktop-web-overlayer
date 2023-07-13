@@ -1,0 +1,22 @@
+{
+  "name": "desktop-web-overlayer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "ultra -r build",
+    "start": "pnpm --filter @desktop-web-overlayer/electron start",
+    "dev": "ultra -r dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "workspaces": [
+    "apps/*"
+  ],
+  "packageManager": "pnpm@8.5.1",
+  "devDependencies": {
+    "ultra-runner": "^3.10.5"
+  }
+}

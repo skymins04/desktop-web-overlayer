@@ -1,0 +1,28 @@
+{
+  "name": "@desktop-web-overlayer/electron",
+  "version": "1.0.0",
+  "description": "",
+  "main": "../../dist/electron/index.js",
+  "scripts": {
+    "build": "tsc && copyfiles -f ./icon.png ../../dist/electron",
+    "start": "electron .",
+    "dev": "pnpm build && cross-env DEBUG=true electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/electron-json-storage": "^4.5.0",
+    "@types/node": "^20.4.1",
+    "copyfiles": "^2.4.1",
+    "cross-env": "^7.0.3",
+    "electron-builder": "^24.4.0",
+    "typescript": "^5.0.2"
+  },
+  "dependencies": {
+    "electron": "^25.2.0",
+    "electron-json-storage": "^4.6.0",
+    "electron-window-state": "^5.0.3",
+    "uuidv4": "^6.2.13"
+  }
+}
