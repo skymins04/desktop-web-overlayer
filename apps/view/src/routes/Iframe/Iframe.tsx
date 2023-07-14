@@ -1,3 +1,4 @@
+import { notifications } from "@mantine/notifications";
 import classNames from "classnames";
 import { useEffect, useState } from "react";
 
@@ -15,6 +16,11 @@ export const Iframe = () => {
 
   const handleupdateWindowPosAndSize = () => {
     window.updateWindowPosAndSize();
+    notifications.show({
+      title: "창 크기/위치 저장 완료!",
+      message:
+        "오버레이 창의 크기와 위치가 저장되었어요. 창을 닫거나 프로그램을 종료한 이후 다시 실행해도 창의 위치가 보존돼요.",
+    });
   };
 
   useEffect(() => {

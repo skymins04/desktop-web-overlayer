@@ -13,6 +13,7 @@ import {
   AddPageFormValidationSchema,
 } from "./validationSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { notifications } from "@mantine/notifications";
 
 export const AddPage = () => {
   const {
@@ -32,6 +33,11 @@ export const AddPage = () => {
 
   const handleSubmit = handleFormSubmit((value) => {
     window.addWebPage(value);
+    notifications.show({
+      title: "웹페이지 추가 완료!",
+      message:
+        '새 웹페이지가 추가되었어요. "시스템 트레이 메뉴" - "웹페이지 열기/닫기"에서 추가된 웹페이지 오버레이를 띄울 수 있습니다.',
+    });
     reset();
   });
 

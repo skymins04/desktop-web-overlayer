@@ -11,5 +11,10 @@ declare global {
 }
 
 window.addWebPage = (page) => {
-  ipcRenderer.send("add-web-page", page);
+  const trimedPage = {
+    title: page.title.trim(),
+    url: page.url.trim(),
+    customTheme: page.customTheme,
+  };
+  ipcRenderer.send("add-web-page", trimedPage);
 };
