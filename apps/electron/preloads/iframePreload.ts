@@ -27,7 +27,6 @@ ipcRenderer.on("show-border", (e, isShow: boolean) => {
   if (isShow)
     document.getElementsByTagName("html")[0].classList.add("show-border");
   else document.getElementsByTagName("html")[0].classList.remove("show-border");
-  console.log("hello world");
 });
 
 ipcRenderer.on("ignore-window-mouse-event", (e, isIgnore: boolean) => {

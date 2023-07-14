@@ -329,6 +329,11 @@ export class DesktopWebOverlayer {
       iframeWindow.loadURL(DesktopWebOverlayerIndexHTMLPath);
 
       iframeWindow.on("ready-to-show", () => {
+        this.injectCSSStyleToIframe(
+          iframeWindow,
+          this.urls[urlId].customTheme || ""
+        );
+
         this.setIgnoreWindowMouseEvent(urlId, this.isIgnoreMouseEvent[urlId]);
         this.setEnableMoveWindowEvent(urlId, this.isEnableMoveWindow[urlId]);
         this.setShowWindowBorder(urlId, this.isShowBorder[urlId]);
@@ -392,6 +397,29 @@ export class DesktopWebOverlayer {
     );
   }
 
+  private injectCSSStyleToIframe(
+    iframeWindow: BrowserWindow,
+    styleString: string
+  ) {
+    setTimeout(() => {
+      const [iframe] = iframeWindow.webContents.mainFrame.frames;
+      const encodedStyleString = this.replaceQuoteEcapeString(styleString);
+
+      if (iframe) {
+        iframe.on("dom-ready", () => {
+          setTimeout(() => {
+            iframe.executeJavaScript(`
+              const body = document.querySelector('body');
+              const style = document.createElement('style');
+              style.innerHTML = \`${encodedStyleString}\`;
+              body.appendChild(style);
+            `);
+          }, 10);
+        });
+      }
+    }, 10);
+  }
+
   private setIfraneWindowUrlInfo(urlId: string, url: string, title: string) {
     this.windows[urlId].webContents.send("init", urlId, url, title);
   }
@@ -433,5 +461,13 @@ export class DesktopWebOverlayer {
     this.windows[urlId].webContents.send("show-border", state);
     this.isShowBorder[urlId] = state;
     setStorageValue("showBorder", this.isShowBorder);
+  }
+
+  /*************************************************************
+   * Utilities
+   *************************************************************/
+
+  private replaceQuoteEcapeString(str: string) {
+    return str.replace(/"/g, '\\"').replace(/'/g, "\\'").replace(/`/g, "\\`");
   }
 }
