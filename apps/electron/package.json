@@ -10,7 +10,7 @@
     "deploy:mac": "electron-builder --mac",
     "deploy:win32": "electron-builder --win --ia32",
     "deploy:win64": "electron-builder --win --x64",
-    "deploy:win": "pnpm deploy:win32 && pnpm deploy:win64"
+    "deploy:all": "pnpm deploy:mac && pnpm deploy:win32 && pnpm deploy:win64"
   },
   "keywords": [],
   "author": "",
@@ -27,21 +27,26 @@
   },
   "dependencies": {
     "electron-json-storage": "^4.6.0",
+    "electron-updater": "^6.1.1",
     "electron-window-state": "^5.0.3",
     "uuidv4": "^6.2.13"
   },
   "build": {
-    "productName": "Desktop-Web-Overlayer",
+    "productName": "Desktop Web Overlayer",
     "appId": "com.desktop-web-overlayer.electron",
     "asar": true,
+    "publish": {
+      "provider": "github"
+    },
     "mac": {
       "target": [
         "default"
       ],
-      "icon": "dist/icon.png"
+      "icon": "dist/icon.png",
+      "category": "public.app-category.productivity"
     },
     "dmg": {
-      "title": "Desktop-Web-Overlayer",
+      "title": "Desktop Web Overlayer",
       "icon": "dist/icon.png"
     },
     "win": {
@@ -57,9 +62,9 @@
       "perMachine": true,
       "language": 1042,
       "installerIcon": "dist/icon.ico",
-      "shortcutName": "Desktop-Web-Overlayer",
-      "artifactName": "Desktop-Web-Overlayer-${version}.${ext}",
-      "uninstallDisplayName": "Desktop-Web-Overlayer"
+      "shortcutName": "Desktop Web Overlayer",
+      "artifactName": "Desktop Web Overlayer-${version}-${arch}.${ext}",
+      "uninstallDisplayName": "Desktop Web Overlayer"
     },
     "directories": {
       "output": "../../dist/"

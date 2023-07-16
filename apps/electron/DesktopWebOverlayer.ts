@@ -8,6 +8,7 @@ import {
   WebContents,
 } from "electron";
 import electronWindowState, { State } from "electron-window-state";
+import { autoUpdater } from "electron-updater";
 import {
   WindowBooleans,
   WindowPositions,
@@ -26,12 +27,31 @@ import {
   DesktopWebOverlayerSettingsHTMLPath,
   DesktopWebOverlayerPreloadJsPath,
   IpcEventKeys,
+  DesktopWebOverlayerCheckUpdateHTMLPath,
 } from "./constants";
 import { uuid } from "uuidv4";
 
 export class DesktopWebOverlayer {
   constructor() {
-    app.on("ready", () => {
+    app.on("ready", async () => {
+      autoUpdater.on("checking-for-update", () => {
+        console.log("업데이트 확인 중...");
+      });
+      autoUpdater.on("update-available", (info) => {
+        console.log("업데이트 존재합니다:", info.version);
+      });
+      autoUpdater.on("update-not-available", () => {
+        console.log("업데이트가 없습니다.");
+      });
+      autoUpdater.on("error", (err) => {
+        console.log("업데이트를 실패했습니다:", err);
+      });
+      autoUpdater.on("update-downloaded", (info) => {
+        console.log("업데이트를 완료했습니다:", info.version);
+      });
+      this.openCheckUpdateWindow();
+      await autoUpdater.checkForUpdates();
+      this.closeCheckUpdateWindow();
       this.init();
     });
     app.on("window-all-closed", () => {});
@@ -41,6 +61,7 @@ export class DesktopWebOverlayer {
    * System Objects
    *************************************************************/
 
+  private checkUpdateWindow: BrowserWindow | null = null;
   private settingsWindow: BrowserWindow | null = null;
   private overlayWindows: Record<string, BrowserWindow> = {};
   private overlayWindowStates: Record<string, State> = {};
@@ -321,6 +342,28 @@ export class DesktopWebOverlayer {
   /*************************************************************
    * Window Opener/Closer
    *************************************************************/
+
+  private openCheckUpdateWindow() {
+    this.checkUpdateWindow = new BrowserWindow({
+      width: 300,
+      height: 300,
+      center: true,
+      alwaysOnTop: true,
+      frame: false,
+      webPreferences: {
+        webSecurity: true,
+        nodeIntegration: true,
+        contextIsolation: false,
+      },
+    });
+    this.checkUpdateWindow.loadURL(DesktopWebOverlayerCheckUpdateHTMLPath);
+  }
+
+  private closeCheckUpdateWindow() {
+    if (this.checkUpdateWindow) {
+      this.checkUpdateWindow.close();
+    }
+  }
 
   private openSettingsWindow(menu?: string) {
     this.settingsWindow = new BrowserWindow({
