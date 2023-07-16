@@ -1,7 +1,7 @@
 import path from "path";
 
 export const title = "Desktop Web Overlayer";
-export const version = `v1.0.0`;
+export const version = `v1.0.1`;
 export const titleVersion = `${title} - ${version}`;
 export const logoImagePath = path.resolve(__dirname, "icon.png");
 
