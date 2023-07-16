@@ -32,7 +32,7 @@
     "uuidv4": "^6.2.13"
   },
   "build": {
-    "productName": "Desktop Web Overlayer",
+    "productName": "Desktop-Web-Overlayer",
     "appId": "com.desktop-web-overlayer.electron",
     "asar": true,
     "publish": {
@@ -46,7 +46,7 @@
       "category": "public.app-category.productivity"
     },
     "dmg": {
-      "title": "Desktop Web Overlayer",
+      "title": "Desktop-Web-Overlayer",
       "icon": "dist/icon.png"
     },
     "win": {
@@ -62,9 +62,9 @@
       "perMachine": true,
       "language": 1042,
       "installerIcon": "dist/icon.ico",
-      "shortcutName": "Desktop Web Overlayer",
-      "artifactName": "Desktop Web Overlayer-${version}-${arch}.${ext}",
-      "uninstallDisplayName": "Desktop Web Overlayer"
+      "shortcutName": "Desktop-Web-Overlayer",
+      "artifactName": "Desktop-Web-Overlayer-${version}-${arch}.${ext}",
+      "uninstallDisplayName": "Desktop-Web-Overlayer"
     },
     "directories": {
       "output": "../../dist/"
