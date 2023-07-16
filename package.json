@@ -7,7 +7,11 @@
     "build": "ultra -r build",
     "start": "pnpm --filter @desktop-web-overlayer/electron start",
     "dev": "ultra -r dev",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy:mac": "pnpm --filter @desktop-web-overlayer/electron deploy:mac",
+    "deploy:win32": "pnpm --filter @desktop-web-overlayer/electron deploy:win32",
+    "deploy:win64": "pnpm --filter @desktop-web-overlayer/electron deploy:win64",
+    "deploy:all": "pnpm deploy:mac && pnpm deploy:win32 && pnpm deploy:win64"
   },
   "keywords": [],
   "author": "",

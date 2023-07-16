@@ -4,9 +4,13 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc && copyfiles -f ./icon.png dist",
+    "build": "tsc && copyfiles -f ./icon.png ./icon.ico dist",
     "start": "electron .",
-    "dev": "pnpm build && cross-env DEBUG=true electron ."
+    "dev": "pnpm build && cross-env DEBUG=true electron .",
+    "deploy:mac": "electron-builder --mac",
+    "deploy:win32": "electron-builder --win --ia32",
+    "deploy:win64": "electron-builder --win --x64",
+    "deploy:win": "pnpm deploy:win32 && pnpm deploy:win64"
   },
   "keywords": [],
   "author": "",
@@ -14,15 +18,51 @@
   "devDependencies": {
     "@types/electron-json-storage": "^4.5.0",
     "@types/node": "^20.4.1",
+    "app-builder-bin": "^4.1.2",
     "copyfiles": "^2.4.1",
     "cross-env": "^7.0.3",
+    "electron": "24.6.3",
     "electron-builder": "^24.4.0",
     "typescript": "^5.0.2"
   },
   "dependencies": {
-    "electron": "^25.2.0",
     "electron-json-storage": "^4.6.0",
     "electron-window-state": "^5.0.3",
     "uuidv4": "^6.2.13"
+  },
+  "build": {
+    "productName": "Desktop-Web-Overlayer",
+    "appId": "com.desktop-web-overlayer.electron",
+    "asar": true,
+    "mac": {
+      "target": [
+        "default"
+      ],
+      "icon": "dist/icon.png"
+    },
+    "dmg": {
+      "title": "Desktop-Web-Overlayer",
+      "icon": "dist/icon.png"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "dist/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "perMachine": true,
+      "language": 1042,
+      "installerIcon": "dist/icon.ico",
+      "shortcutName": "Desktop-Web-Overlayer",
+      "artifactName": "Desktop-Web-Overlayer-${version}.${ext}",
+      "uninstallDisplayName": "Desktop-Web-Overlayer"
+    },
+    "directories": {
+      "output": "../../dist/"
+    }
   }
 }
