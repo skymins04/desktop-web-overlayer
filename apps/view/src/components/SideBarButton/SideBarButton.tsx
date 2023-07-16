@@ -49,7 +49,7 @@ export const SideBarButton = ({
     <button
       {...props}
       className={classNames(
-        "group w-full px-[10px] py-[10px] rounded-[6px] bg-white hover:bg-gray-100 active:bg-gray-200 duration-200 text-[14px] text-gray-700 border-none cursor-pointer flex justify-start items-center font-bold gap-[10px]",
+        "group w-full px-[10px] py-[10px] rounded-[6px] bg-white hover:bg-gray-100 active:bg-gray-200 duration-200 text-[12px] text-gray-700 border-none cursor-pointer flex justify-start items-center font-bold gap-[10px]",
         className
       )}
     >
