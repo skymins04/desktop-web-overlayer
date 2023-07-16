@@ -49,14 +49,14 @@ export const Overlay = () => {
       </div>
       <button
         id="close-btn"
-        className="hidden [.draggable_&]:flex justify-center items-center absolute top-[5px] right-[5px] w-[20px] h-[20px] p-0 z-40 cursor-pointer"
+        className="hidden [.draggable_&]:flex justify-center items-center absolute top-[5px] right-[5px] w-[20px] h-[20px] p-0 z-40 cursor-pointer text-[10px]"
         onClick={handleClose}
       >
         x
       </button>
       <button
         id="close-btn"
-        className="hidden [.draggable_&]:flex justify-center items-center absolute top-[5px] right-[30px] w-[100px] h-[20px] p-0 z-40 cursor-pointer text-[12px]"
+        className="hidden [.draggable_&]:flex justify-center items-center absolute top-[5px] right-[30px] w-[100px] h-[20px] p-0 z-40 cursor-pointer text-[10px]"
         onClick={handleupdateWindowPosAndSize}
       >
         창 크기/위치 저장
