@@ -1,7 +1,8 @@
+import { createBrowserRouter } from "react-router-dom";
 import { Overlay } from "./Overlay";
 import { Settings } from "./Settings";
 
-export const router = [
+export const router = createBrowserRouter([
   {
     path: "/overlay",
     element: <Overlay />,
@@ -10,4 +11,4 @@ export const router = [
     path: "/settings",
     element: <Settings />,
   },
-];
+]);

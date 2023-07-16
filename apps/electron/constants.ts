@@ -11,8 +11,8 @@ export const logoImagePath = path.resolve(__dirname, "icon.png");
 
 export const DesktopWebOverlayerRootDirPath = __dirname;
 export const DesktopWebOverlayerViewDirPath = process.env.DEBUG
-  ? "http://localhost:5173#"
-  : "https://desktop-web-overlayer.betaman.xyz#";
+  ? "http://localhost:5173"
+  : "https://desktop-web-overlayer.betaman.xyz";
 
 /**
  * Page Routing Path
