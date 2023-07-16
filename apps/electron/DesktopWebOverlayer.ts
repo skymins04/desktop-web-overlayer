@@ -1,4 +1,12 @@
-import { BrowserWindow, Menu, Tray, app, nativeImage, ipcMain } from "electron";
+import {
+  BrowserWindow,
+  Menu,
+  Tray,
+  app,
+  nativeImage,
+  ipcMain,
+  WebContents,
+} from "electron";
 import electronWindowState, { State } from "electron-window-state";
 import {
   WindowBooleans,
@@ -10,14 +18,14 @@ import {
   Overlays,
 } from "./utils";
 import {
-  DesktopWebOverlayerSettingsPreloadJsPath,
-  DesktopWebOverlayerOverlayPreloadJsPath,
   DesktopWebOverlayerIndexHTMLPath,
   logoImagePath,
   title,
   titleVersion,
   DesktopWebOverlayerSettingsAddOverlayHTMLPath,
   DesktopWebOverlayerSettingsHTMLPath,
+  DesktopWebOverlayerPreloadJsPath,
+  IpcEventKeys,
 } from "./constants";
 import { uuid } from "uuidv4";
 
@@ -94,89 +102,51 @@ export class DesktopWebOverlayer {
   }
 
   private initIpcListeners() {
-    ipcMain.on("add-web-overlay", (e, overlay: Overlay) => {
+    ipcMain.on(IpcEventKeys.AddWebOverlay, (e, overlay: Overlay) => {
       this.addOverlay(overlay);
-      setTimeout(() => {
-        e.sender.send(
-          "get-web-overlay-list",
-          this.overlays,
-          this.activeOverlayIds
-        );
-      }, 10);
+      this.sendOverlayInfoToOverlayWindow(e.sender);
       this.updateTrayContextMenu();
     });
-    ipcMain.on("get-web-overlay-list", (e) => {
-      e.sender.send(
-        "get-web-overlay-list",
-        this.overlays,
-        this.activeOverlayIds
-      );
+    ipcMain.on(IpcEventKeys.GetWebOverlayList, (e) => {
+      this.sendOverlayInfoToOverlayWindow(e.sender);
     });
-    ipcMain.on("update-iframe-pos-size", (e, overlayId: string) => {
-      this.updateWindowState(overlayId);
-    });
-    ipcMain.on("close", (e, overlayId: string) => {
-      this.removeActiveOverlayId(overlayId);
-      this.updateTrayContextMenu();
-    });
-    ipcMain.on("delete-overlay", (e, overlayId: string) => {
+    ipcMain.on(
+      IpcEventKeys.UpdateIframePositionSize,
+      (e, overlayId: string) => {
+        this.updateWindowState(overlayId);
+      }
+    );
+    ipcMain.on(IpcEventKeys.DeleteWebOverlay, (e, overlayId: string) => {
       this.removeOverlay(overlayId);
-      setTimeout(() => {
-        e.sender.send(
-          "get-web-overlay-list",
-          this.overlays,
-          this.activeOverlayIds
-        );
-      }, 10);
+      this.sendOverlayInfoToOverlayWindow(e.sender);
       this.updateTrayContextMenu();
     });
-    ipcMain.on("edit-overlay", (e, overlayId: string, overlay: Overlay) => {
-      this.editOverlay(overlayId, overlay);
-      setTimeout(() => {
-        e.sender.send(
-          "get-web-overlay-list",
-          this.overlays,
-          this.activeOverlayIds
-        );
-      }, 10);
-      this.updateTrayContextMenu();
-    });
-    ipcMain.on("open-overlay", (e, overlayId: string) => {
+    ipcMain.on(
+      IpcEventKeys.EditWebOverlay,
+      (e, overlayId: string, overlay: Overlay) => {
+        this.editOverlay(overlayId, overlay);
+        this.sendOverlayInfoToOverlayWindow(e.sender);
+        this.updateTrayContextMenu();
+      }
+    );
+    ipcMain.on(IpcEventKeys.OpenWebOverlay, (e, overlayId: string) => {
       if (!this.overlayWindows[overlayId]) {
         this.openOverlayWindow(overlayId);
-        setTimeout(() => {
-          e.sender.send(
-            "get-web-overlay-list",
-            this.overlays,
-            this.activeOverlayIds
-          );
-        }, 200);
+        this.sendOverlayInfoToOverlayWindow(e.sender);
         this.updateTrayContextMenu();
       }
     });
-    ipcMain.on("close-overlay", (e, overlayId: string) => {
+    ipcMain.on(IpcEventKeys.CloseWebOverlay, (e, overlayId: string) => {
       if (this.overlayWindows[overlayId]) {
         this.closeOverlayWindow(overlayId);
-        setTimeout(() => {
-          e.sender.send(
-            "get-web-overlay-list",
-            this.overlays,
-            this.activeOverlayIds
-          );
-        }, 10);
+        this.sendOverlayInfoToOverlayWindow(e.sender);
         this.updateTrayContextMenu();
       }
     });
-    ipcMain.on("reload-overlay", (e, overlayId: string) => {
+    ipcMain.on(IpcEventKeys.ReloadWebOverlay, (e, overlayId: string) => {
       if (this.overlayWindows[overlayId]) {
         this.reloadOverlayWindow(overlayId);
-        setTimeout(() => {
-          e.sender.send(
-            "get-web-overlay-list",
-            this.overlays,
-            this.activeOverlayIds
-          );
-        }, 10);
+        this.sendOverlayInfoToOverlayWindow(e.sender);
         this.updateTrayContextMenu();
       }
     });
@@ -361,7 +331,7 @@ export class DesktopWebOverlayer {
         webSecurity: true,
         nodeIntegration: true,
         contextIsolation: false,
-        preload: DesktopWebOverlayerSettingsPreloadJsPath,
+        preload: DesktopWebOverlayerPreloadJsPath,
       },
     });
     this.ignoreXFrameOptionsHeader(this.settingsWindow);
@@ -404,7 +374,7 @@ export class DesktopWebOverlayer {
           webSecurity: true,
           nodeIntegration: true,
           contextIsolation: false,
-          preload: DesktopWebOverlayerOverlayPreloadJsPath,
+          preload: DesktopWebOverlayerPreloadJsPath,
         },
       });
       this.ignoreXFrameOptionsHeader(overlayWindow);
@@ -444,13 +414,23 @@ export class DesktopWebOverlayer {
         );
         this.initOverlayWindow(overlayId, overlay.url, overlay.title);
         this.setOverlayWindowIframeSrc(overlayId, overlay.url);
-        this.addActiveOverlayId(overlayId);
         this.updateTrayContextMenu();
+      });
+      overlayWindow.on("close", () => {
+        this.removeActiveOverlayId(overlayId);
+        this.updateTrayContextMenu();
+        if (this.settingsWindow) {
+          this.sendOverlayInfoToOverlayWindow(this.settingsWindow.webContents);
+        }
       });
       windowState.manage(overlayWindow);
 
       this.overlayWindows[overlayId] = overlayWindow;
       this.overlayWindowStates[overlayId] = windowState;
+      this.addActiveOverlayId(overlayId);
+      if (this.settingsWindow) {
+        this.sendOverlayInfoToOverlayWindow(this.settingsWindow.webContents);
+      }
     }
   }
 
@@ -532,7 +512,7 @@ export class DesktopWebOverlayer {
 
   private initOverlayWindow(overlayId: string, url: string, title: string) {
     this.overlayWindows[overlayId].webContents.send(
-      "init",
+      IpcEventKeys.InitWebOverlay,
       overlayId,
       url,
       title
@@ -540,7 +520,10 @@ export class DesktopWebOverlayer {
   }
 
   private setOverlayWindowIframeSrc(overlayId: string, url: string) {
-    this.overlayWindows[overlayId].webContents.send("set-iframe-url", url);
+    this.overlayWindows[overlayId].webContents.send(
+      IpcEventKeys.SetIframeUrlWebOverlay,
+      url
+    );
   }
 
   /*************************************************************
@@ -598,7 +581,7 @@ export class DesktopWebOverlayer {
   private setIgnoreOverlayWindowMouseEvent(overlayId: string, state: boolean) {
     this.overlayWindows[overlayId].setIgnoreMouseEvents(state);
     this.overlayWindows[overlayId].webContents.send(
-      "ignore-window-mouse-event",
+      IpcEventKeys.IgnoreMouseEventWebOverlay,
       state
     );
     this.isIgnoreOverlayWindowMouseEvents[overlayId] = state;
@@ -610,7 +593,7 @@ export class DesktopWebOverlayer {
 
   private setEnableMoveOverlayWindowEvent(overlayId: string, state: boolean) {
     this.overlayWindows[overlayId].webContents.send(
-      "enable-move-window",
+      IpcEventKeys.EnableMoveWebOverlay,
       state
     );
     this.isEnableOverlayWindowMoves[overlayId] = state;
@@ -621,7 +604,10 @@ export class DesktopWebOverlayer {
   }
 
   private setShowOverlayWindowBorder(overlayId: string, state: boolean) {
-    this.overlayWindows[overlayId].webContents.send("show-border", state);
+    this.overlayWindows[overlayId].webContents.send(
+      IpcEventKeys.ShowBorderWebOverlay,
+      state
+    );
     this.isShowOverlayWindowBorders[overlayId] = state;
     setStorageValue(
       "isShowOverlayWindowBorders",
@@ -635,5 +621,13 @@ export class DesktopWebOverlayer {
 
   private replaceQuoteEcapeString(str: string) {
     return str.replace(/"/g, '\\"').replace(/'/g, "\\'").replace(/`/g, "\\`");
+  }
+
+  private sendOverlayInfoToOverlayWindow(webContents: WebContents) {
+    webContents.send(
+      IpcEventKeys.GetWebOverlayList,
+      this.overlays,
+      this.activeOverlayIds
+    );
   }
 }

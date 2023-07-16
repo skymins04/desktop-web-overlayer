@@ -12,7 +12,6 @@ declare global {
   interface Window {
     addWebOverlay: (overlay: Overlay) => void;
     updateWindowPosAndSize: () => void;
-    closeOverlayWindow: () => void;
     addGetOverlayListListener: (
       cb: (overlays: Overlays, activeOverlayIds: string[]) => void
     ) => void;

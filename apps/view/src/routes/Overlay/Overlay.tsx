@@ -11,7 +11,7 @@ export const Overlay = () => {
   } | null>(null);
 
   const handleClose = () => {
-    window.closeOverlayWindow();
+    window.close();
   };
 
   const handleupdateWindowPosAndSize = () => {
@@ -24,7 +24,9 @@ export const Overlay = () => {
   };
 
   useEffect(() => {
-    setTimeout(() => setIsLoaded(true), 1000);
+    setTimeout(() => {
+      setIsLoaded(true);
+    }, 1000);
   }, []);
 
   useEffect(() => {

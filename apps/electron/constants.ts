@@ -35,13 +35,23 @@ export const DesktopWebOverlayerSettingsAddOverlayHTMLPath = path.join(
  * Preload File Path
  */
 
-export const DesktopWebOverlayerOverlayPreloadJsPath = path.join(
+export const DesktopWebOverlayerPreloadJsPath = path.join(
   DesktopWebOverlayerRootDirPath,
-  "preloads",
-  "overlayPreload.js"
+  "preload.js"
 );
-export const DesktopWebOverlayerSettingsPreloadJsPath = path.join(
-  DesktopWebOverlayerRootDirPath,
-  "preloads",
-  "settingsPreload.js"
-);
+
+export const IpcEventKeys = {
+  AddWebOverlay: "add-web-overlay",
+  GetWebOverlayList: "get-web-overlay-list",
+  DeleteWebOverlay: "delete-web-overlay",
+  EditWebOverlay: "edit-web-overlay",
+  OpenWebOverlay: "open-web-overlay",
+  CloseWebOverlay: "close-web-overlay",
+  ReloadWebOverlay: "reload-web-overlay",
+  UpdateIframePositionSize: "update-iframe-pos-size",
+  InitWebOverlay: "init-web-overlay",
+  ShowBorderWebOverlay: "show-border-web-overlay",
+  IgnoreMouseEventWebOverlay: "ignore-mouse-event-web-overlay",
+  EnableMoveWebOverlay: "enable-move-web-overlay",
+  SetIframeUrlWebOverlay: "set-iframe-url-web-overlay",
+};
