@@ -2,9 +2,9 @@
   "name": "@desktop-web-overlayer/electron",
   "version": "1.0.0",
   "description": "",
-  "main": "../../dist/electron/index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "build": "tsc && copyfiles -f ./icon.png ../../dist/electron",
+    "build": "tsc && copyfiles -f ./icon.png dist",
     "start": "electron .",
     "dev": "pnpm build && cross-env DEBUG=true electron ."
   },
