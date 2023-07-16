@@ -1,22 +1,24 @@
 import { BrowserWindow, Menu, Tray, app, nativeImage, ipcMain } from "electron";
 import electronWindowState, { State } from "electron-window-state";
 import {
-  WindowBoolean,
+  WindowBooleans,
   WindowPositions,
   WindowSizes,
   getStorageValue,
   setStorageValue,
+  Overlay,
+  Overlays,
 } from "./utils";
 import {
-  DesktopWebOverlayerAddPagePreloadJsPath,
-  DesktopWebOverlayerAddWebPageHTMLPath,
-  DesktopWebOverlayerIframePreloadJsPath,
+  DesktopWebOverlayerSettingsPreloadJsPath,
+  DesktopWebOverlayerOverlayPreloadJsPath,
   DesktopWebOverlayerIndexHTMLPath,
   logoImagePath,
   title,
   titleVersion,
+  DesktopWebOverlayerSettingsAddOverlayHTMLPath,
+  DesktopWebOverlayerSettingsHTMLPath,
 } from "./constants";
-import { Page, Pages } from "./preloads/addPagePreload";
 import { uuid } from "uuidv4";
 
 export class DesktopWebOverlayer {
@@ -31,23 +33,22 @@ export class DesktopWebOverlayer {
    * System Objects
    *************************************************************/
 
-  private addWebPageWindow: BrowserWindow | null = null;
-  private windows: { [key: string]: BrowserWindow } = {};
-  private windowStates: { [key: string]: State } = {};
+  private settingsWindow: BrowserWindow | null = null;
+  private overlayWindows: Record<string, BrowserWindow> = {};
+  private overlayWindowStates: Record<string, State> = {};
   private tray: Tray | null = null;
 
   /*************************************************************
    * Storage Values
    *************************************************************/
 
-  private urls: Pages = {};
-  private urlIds: string[] = [];
-  private activeUrlIds: string[] = [];
-  private windowSizes: WindowSizes = {};
-  private windowPositions: WindowPositions = {};
-  private isIgnoreMouseEvent: WindowBoolean = {};
-  private isEnableMoveWindow: WindowBoolean = {};
-  private isShowBorder: WindowBoolean = {};
+  private overlays: Overlays = {};
+  private activeOverlayIds: string[] = [];
+  private overlayWindowSizes: WindowSizes = {};
+  private overlayWindowPositions: WindowPositions = {};
+  private isIgnoreOverlayWindowMouseEvents: WindowBooleans = {};
+  private isEnableOverlayWindowMoves: WindowBooleans = {};
+  private isShowOverlayWindowBorders: WindowBooleans = {};
 
   /*************************************************************
    * Initializers
@@ -61,49 +62,134 @@ export class DesktopWebOverlayer {
   }
 
   private initValues() {
-    const urls = getStorageValue("urls");
-    this.updatePageValues(typeof urls === "object" ? urls : {});
-    const positions = getStorageValue("position");
-    this.windowPositions = typeof positions === "object" ? positions : {};
-    const sizes = getStorageValue("size");
-    this.windowSizes = typeof sizes === "object" ? sizes : {};
-    const ignoreMouseEvent = getStorageValue("ignoreMouseEvent");
-    this.isIgnoreMouseEvent =
-      typeof ignoreMouseEvent === "object" ? ignoreMouseEvent : {};
-    const enableMoveWindow = getStorageValue("enableMoveWindow");
-    this.isEnableMoveWindow =
-      typeof enableMoveWindow === "object" ? enableMoveWindow : {};
-    const showBorder = getStorageValue("showBorder");
-    this.isShowBorder = typeof showBorder === "object" ? showBorder : {};
+    const overlays = getStorageValue("overlays");
+    this.updateOverlays(typeof overlays === "object" ? overlays : {});
+    const overlayPositions = getStorageValue("overlayPositions");
+    this.overlayWindowPositions =
+      typeof overlayPositions === "object" ? overlayPositions : {};
+    const overlaySizes = getStorageValue("overlaySizes");
+    this.overlayWindowSizes =
+      typeof overlaySizes === "object" ? overlaySizes : {};
+    const isIgnoreOverlayWindowMouseEvents = getStorageValue(
+      "isIgnoreOverlayWindowMouseEvents"
+    );
+    this.isIgnoreOverlayWindowMouseEvents =
+      typeof isIgnoreOverlayWindowMouseEvents === "object"
+        ? isIgnoreOverlayWindowMouseEvents
+        : {};
+    const isEnableOverlayWindowMoves = getStorageValue(
+      "isEnableOverlayWindowMoves"
+    );
+    this.isEnableOverlayWindowMoves =
+      typeof isEnableOverlayWindowMoves === "object"
+        ? isEnableOverlayWindowMoves
+        : {};
+    const isShowOverlayWindowBorders = getStorageValue(
+      "isShowOverlayWindowBorders"
+    );
+    this.isShowOverlayWindowBorders =
+      typeof isShowOverlayWindowBorders === "object"
+        ? isShowOverlayWindowBorders
+        : {};
   }
 
   private initIpcListeners() {
-    ipcMain.on("add-web-page", (e, page: Page) => {
-      const pages = getStorageValue("urls") || {};
-      const newPages = { ...pages };
-      newPages[uuid()] = page;
-
-      setStorageValue("urls", newPages);
-      this.updatePageValues(newPages);
+    ipcMain.on("add-web-overlay", (e, overlay: Overlay) => {
+      this.addOverlay(overlay);
+      setTimeout(() => {
+        e.sender.send(
+          "get-web-overlay-list",
+          this.overlays,
+          this.activeOverlayIds
+        );
+      }, 10);
       this.updateTrayContextMenu();
     });
-    ipcMain.on("get-web-page-list", (e) => {
-      e.sender.send("get-web-page-list", this.urls);
+    ipcMain.on("get-web-overlay-list", (e) => {
+      e.sender.send(
+        "get-web-overlay-list",
+        this.overlays,
+        this.activeOverlayIds
+      );
     });
-    ipcMain.on("update-iframe-pos-size", (e, urlId: string) => {
-      this.updateWindowState(urlId);
+    ipcMain.on("update-iframe-pos-size", (e, overlayId: string) => {
+      this.updateWindowState(overlayId);
     });
-    ipcMain.on("close", (e, urlId: string) => {
-      this.removeActiveUrlId(urlId);
+    ipcMain.on("close", (e, overlayId: string) => {
+      this.removeActiveOverlayId(overlayId);
       this.updateTrayContextMenu();
+    });
+    ipcMain.on("delete-overlay", (e, overlayId: string) => {
+      this.removeOverlay(overlayId);
+      setTimeout(() => {
+        e.sender.send(
+          "get-web-overlay-list",
+          this.overlays,
+          this.activeOverlayIds
+        );
+      }, 10);
+      this.updateTrayContextMenu();
+    });
+    ipcMain.on("edit-overlay", (e, overlayId: string, overlay: Overlay) => {
+      this.editOverlay(overlayId, overlay);
+      setTimeout(() => {
+        e.sender.send(
+          "get-web-overlay-list",
+          this.overlays,
+          this.activeOverlayIds
+        );
+      }, 10);
+      this.updateTrayContextMenu();
+    });
+    ipcMain.on("open-overlay", (e, overlayId: string) => {
+      if (!this.overlayWindows[overlayId]) {
+        this.openOverlayWindow(overlayId);
+        setTimeout(() => {
+          e.sender.send(
+            "get-web-overlay-list",
+            this.overlays,
+            this.activeOverlayIds
+          );
+        }, 200);
+        this.updateTrayContextMenu();
+      }
+    });
+    ipcMain.on("close-overlay", (e, overlayId: string) => {
+      if (this.overlayWindows[overlayId]) {
+        this.closeOverlayWindow(overlayId);
+        setTimeout(() => {
+          e.sender.send(
+            "get-web-overlay-list",
+            this.overlays,
+            this.activeOverlayIds
+          );
+        }, 10);
+        this.updateTrayContextMenu();
+      }
+    });
+    ipcMain.on("reload-overlay", (e, overlayId: string) => {
+      if (this.overlayWindows[overlayId]) {
+        this.reloadOverlayWindow(overlayId);
+        setTimeout(() => {
+          e.sender.send(
+            "get-web-overlay-list",
+            this.overlays,
+            this.activeOverlayIds
+          );
+        }, 10);
+        this.updateTrayContextMenu();
+      }
     });
   }
 
   private initWindows() {
-    if (this.activeUrlIds.length === 0 && this.urlIds.length === 0) {
-      this.openAddWebWindow();
+    if (
+      this.activeOverlayIds.length === 0 &&
+      Object.keys(this.overlays).length === 0
+    ) {
+      this.openSettingsWindow("addOverlay");
     } else {
-      this.openActiveURLIframeWindows();
+      this.openActiveOverlayWindows();
     }
   }
 
@@ -118,37 +204,35 @@ export class DesktopWebOverlayer {
    * Updaters
    *************************************************************/
 
-  private updatePageValues(page: Pages) {
-    this.urls = page;
-    this.urlIds = Object.keys(this.urls);
-    this.activeUrlIds = (
-      Array.isArray(getStorageValue("activeUrls"))
-        ? getStorageValue("activeUrls")
-        : []
-    ).filter((activeUrl) => this.urlIds.includes(activeUrl));
+  private updateOverlays(overlays: Overlays) {
+    this.overlays = overlays;
+    const activeOverlayIds = getStorageValue("activeOverlayIds");
+    this.activeOverlayIds = (
+      Array.isArray(activeOverlayIds) ? activeOverlayIds : []
+    ).filter((activeOverlayId) => !!this.overlays[activeOverlayId]);
   }
 
-  private updateWindowState = (urlId: string) => {
-    const urlWindow = this.windows[urlId];
-    const windowState = this.windowStates[urlId];
-    this.updateWindowPosition(urlId, windowState);
-    this.updateWindowSize(urlId, urlWindow);
+  private updateWindowState = (overlayId: string) => {
+    const overlayWindow = this.overlayWindows[overlayId];
+    const overlayWindowState = this.overlayWindowStates[overlayId];
+    this.updateWindowPosition(overlayId, overlayWindowState);
+    this.updateWindowSize(overlayId, overlayWindow);
   };
 
-  private updateWindowPosition(urlId: string, windowState: State) {
-    const windowPosition = {
-      x: windowState.x,
-      y: windowState.y,
+  private updateWindowPosition(overlayId: string, overlayWindowState: State) {
+    const overlayWindowPosition = {
+      x: overlayWindowState.x,
+      y: overlayWindowState.y,
     };
-    this.windowPositions[urlId] = windowPosition;
-    setStorageValue("position", this.windowPositions);
+    this.overlayWindowPositions[overlayId] = overlayWindowPosition;
+    setStorageValue("overlayPositions", this.overlayWindowPositions);
   }
 
-  private updateWindowSize(urlId: string, urlWindow: BrowserWindow) {
-    const size = urlWindow.getSize();
-    const windowSize = { width: size[0], height: size[1] };
-    this.windowSizes[urlId] = windowSize;
-    setStorageValue("size", this.windowSizes);
+  private updateWindowSize(overlayId: string, overlayWindow: BrowserWindow) {
+    const size = overlayWindow.getSize();
+    const overlayWindowSize = { width: size[0], height: size[1] };
+    this.overlayWindowSizes[overlayId] = overlayWindowSize;
+    setStorageValue("overlaySizes", this.overlayWindowSizes);
   }
 
   private updateTrayContextMenu() {
@@ -158,14 +242,14 @@ export class DesktopWebOverlayer {
       {
         label: "마우스 클릭 통과",
         type: "submenu",
-        submenu: Object.entries(this.isIgnoreMouseEvent)
-          .filter(([urlId, _]) => this.activeUrlIds.includes(urlId))
-          .map(([urlId, value]) => ({
-            label: this.urls[urlId].title,
+        submenu: Object.entries(this.isIgnoreOverlayWindowMouseEvents)
+          .filter(([overlayId, _]) => this.activeOverlayIds.includes(overlayId))
+          .map(([overlayId, value]) => ({
+            label: this.overlays[overlayId].title,
             type: "checkbox",
             checked: value,
             click: () => {
-              this.setIgnoreWindowMouseEvent(urlId, !value);
+              this.setIgnoreOverlayWindowMouseEvent(overlayId, !value);
               this.updateTrayContextMenu();
             },
           })),
@@ -173,14 +257,14 @@ export class DesktopWebOverlayer {
       {
         label: "프레임 상단 핸들 보기",
         type: "submenu",
-        submenu: Object.entries(this.isEnableMoveWindow)
-          .filter(([urlId, _]) => this.activeUrlIds.includes(urlId))
-          .map(([urlId, value]) => ({
-            label: this.urls[urlId].title,
+        submenu: Object.entries(this.isEnableOverlayWindowMoves)
+          .filter(([overlayId, _]) => this.activeOverlayIds.includes(overlayId))
+          .map(([overlayId, value]) => ({
+            label: this.overlays[overlayId].title,
             type: "checkbox",
             checked: value,
             click: () => {
-              this.setEnableMoveWindowEvent(urlId, !value);
+              this.setEnableMoveOverlayWindowEvent(overlayId, !value);
               this.updateTrayContextMenu();
             },
           })),
@@ -188,14 +272,14 @@ export class DesktopWebOverlayer {
       {
         label: "오버레이 외곽선 보기",
         type: "submenu",
-        submenu: Object.entries(this.isShowBorder)
-          .filter(([urlId, _]) => this.activeUrlIds.includes(urlId))
-          .map(([urlId, value]) => ({
-            label: this.urls[urlId].title,
+        submenu: Object.entries(this.isShowOverlayWindowBorders)
+          .filter(([overlayId, _]) => this.activeOverlayIds.includes(overlayId))
+          .map(([overlayId, value]) => ({
+            label: this.overlays[overlayId].title,
             type: "checkbox",
             checked: value,
             click: () => {
-              this.setShowWindowBorder(urlId, !value);
+              this.setShowOverlayWindowBorder(overlayId, !value);
               this.updateTrayContextMenu();
             },
           })),
@@ -203,27 +287,27 @@ export class DesktopWebOverlayer {
       {
         label: "오버레이 새로고침",
         type: "submenu",
-        submenu: this.activeUrlIds.map((urlId) => ({
-          label: this.urls[urlId].title,
+        submenu: this.activeOverlayIds.map((overlayId) => ({
+          label: this.overlays[overlayId].title,
           type: "normal",
-          click: () => this.windows[urlId].reload(),
+          click: () => this.reloadOverlayWindow(overlayId),
         })),
       },
       { type: "separator" },
       {
         label: "웹페이지 열기/닫기",
         type: "submenu",
-        submenu: Object.entries(this.urls).map(([key, url]) => {
-          const isActive = this.activeUrlIds.includes(key);
+        submenu: Object.entries(this.overlays).map(([key, url]) => {
+          const isActive = this.activeOverlayIds.includes(key);
           return {
             label: url.title,
             type: "checkbox",
             checked: isActive,
             click: () => {
               if (isActive) {
-                this.closeIframeWindow(key);
+                this.closeOverlayWindow(key);
               } else {
-                this.openIframeWindow(key);
+                this.openOverlayWindow(key);
               }
             },
           };
@@ -232,25 +316,26 @@ export class DesktopWebOverlayer {
       {
         label: "새 웹페이지 추가하기...",
         type: "normal",
-        enabled: this.addWebPageWindow === null,
-        click: () => this.openAddWebWindow(),
+        enabled: this.settingsWindow === null,
+        click: () => this.openSettingsWindow("addOverlay"),
       },
       { type: "separator" },
       {
         label: "설정 열기...",
         type: "normal",
-        click: () => {
-          console.log("hello");
-        },
+        enabled: this.settingsWindow === null,
+        click: () => this.openSettingsWindow(),
       },
       {
         label: "개발자도구 열기",
         type: "submenu",
-        submenu: this.activeUrlIds.map((urlId) => ({
-          label: this.urls[urlId].title,
+        submenu: this.activeOverlayIds.map((overlayId) => ({
+          label: this.overlays[overlayId].title,
           type: "normal",
           click: () =>
-            this.windows[urlId].webContents.openDevTools({ mode: "undocked" }),
+            this.overlayWindows[overlayId].webContents.openDevTools({
+              mode: "undocked",
+            }),
         })),
       },
       { type: "separator" },
@@ -267,111 +352,136 @@ export class DesktopWebOverlayer {
    * Window Opener/Closer
    *************************************************************/
 
-  private openAddWebWindow() {
-    this.addWebPageWindow = new BrowserWindow({
+  private openSettingsWindow(menu?: string) {
+    this.settingsWindow = new BrowserWindow({
       center: true,
       alwaysOnTop: true,
+      title: "설정",
       webPreferences: {
         webSecurity: true,
         nodeIntegration: true,
         contextIsolation: false,
-        devTools: true,
-        preload: DesktopWebOverlayerAddPagePreloadJsPath,
+        preload: DesktopWebOverlayerSettingsPreloadJsPath,
       },
     });
-    this.ignoreXFrameOptionsHeader(this.addWebPageWindow);
+    this.ignoreXFrameOptionsHeader(this.settingsWindow);
 
-    this.addWebPageWindow.loadURL(DesktopWebOverlayerAddWebPageHTMLPath);
+    this.settingsWindow.loadURL(
+      menu === "addOverlay"
+        ? DesktopWebOverlayerSettingsAddOverlayHTMLPath
+        : DesktopWebOverlayerSettingsHTMLPath
+    );
 
-    this.addWebPageWindow.setTitle("새 웹페이지 추가");
-    this.addWebPageWindow.on("ready-to-show", () => {
+    this.settingsWindow.on("ready-to-show", () => {
       this.updateTrayContextMenu();
     });
-    this.addWebPageWindow.on("closed", () => {
-      this.addWebPageWindow = null;
+    this.settingsWindow.on("closed", () => {
+      this.settingsWindow = null;
       this.updateTrayContextMenu();
     });
   }
 
   // TODO: front 내 창 종료 버튼 외에는 창을 종료할 수 없도록 해야함.
-  private openIframeWindow(urlId: string) {
-    if (this.urlIds.includes(urlId)) {
+  private openOverlayWindow(overlayId: string) {
+    const overlay = this.overlays[overlayId];
+    if (overlay) {
       const windowState = electronWindowState({
         defaultWidth: 500,
         defaultHeight: 500,
       });
-      const iframeWindow = new BrowserWindow({
-        width: this.windowSizes[urlId]?.width || windowState.width,
-        height: this.windowSizes[urlId]?.height || windowState.height,
-        x: this.windowPositions[urlId]?.x || windowState.x,
-        y: this.windowPositions[urlId]?.y || windowState.y,
+      const overlayWindow = new BrowserWindow({
+        width: this.overlayWindowSizes[overlayId]?.width || windowState.width,
+        height:
+          this.overlayWindowSizes[overlayId]?.height || windowState.height,
+        x: this.overlayWindowPositions[overlayId]?.x || windowState.x,
+        y: this.overlayWindowPositions[overlayId]?.y || windowState.y,
         transparent: true,
         frame: false,
         alwaysOnTop: true,
         title: title,
+        opacity: overlay.opacity / 100,
         webPreferences: {
           webSecurity: true,
           nodeIntegration: true,
           contextIsolation: false,
-          preload: DesktopWebOverlayerIframePreloadJsPath,
+          preload: DesktopWebOverlayerOverlayPreloadJsPath,
         },
       });
-      this.ignoreXFrameOptionsHeader(iframeWindow);
-      this.setWindowLangaugeToKR(iframeWindow);
+      this.ignoreXFrameOptionsHeader(overlayWindow);
+      this.setWindowLangaugeToKR(overlayWindow);
 
-      if (this.isIgnoreMouseEvent[urlId] === undefined)
-        this.isIgnoreMouseEvent[urlId] = false;
-      if (this.isEnableMoveWindow[urlId] === undefined)
-        this.isEnableMoveWindow[urlId] = true;
-      if (this.isShowBorder[urlId] === undefined)
-        this.isShowBorder[urlId] = true;
+      if (this.isIgnoreOverlayWindowMouseEvents[overlayId] === undefined)
+        this.isIgnoreOverlayWindowMouseEvents[overlayId] = false;
+      if (this.isEnableOverlayWindowMoves[overlayId] === undefined)
+        this.isEnableOverlayWindowMoves[overlayId] = true;
+      if (this.isShowOverlayWindowBorders[overlayId] === undefined)
+        this.isShowOverlayWindowBorders[overlayId] = true;
 
-      iframeWindow.loadURL(DesktopWebOverlayerIndexHTMLPath);
+      overlayWindow.loadURL(DesktopWebOverlayerIndexHTMLPath);
 
-      iframeWindow.on("ready-to-show", () => {
-        this.injectCSSStyleToIframe(
-          iframeWindow,
-          this.urls[urlId].customTheme || ""
+      overlayWindow.on("ready-to-show", () => {
+        const customTheme = overlay.isEnableFontSize
+          ? `
+            ${overlay.customTheme || ""}
+            * {
+              font-size: ${overlay.fontSize}px !important;
+            }
+          `
+          : overlay.customTheme || "";
+        this.injectCSSStyleToIframe(overlayWindow, customTheme);
+
+        this.setIgnoreOverlayWindowMouseEvent(
+          overlayId,
+          this.isIgnoreOverlayWindowMouseEvents[overlayId]
         );
-
-        this.setIgnoreWindowMouseEvent(urlId, this.isIgnoreMouseEvent[urlId]);
-        this.setEnableMoveWindowEvent(urlId, this.isEnableMoveWindow[urlId]);
-        this.setShowWindowBorder(urlId, this.isShowBorder[urlId]);
-        this.setIfraneWindowUrlInfo(
-          urlId,
-          this.urls[urlId]?.url,
-          this.urls[urlId]?.title
+        this.setEnableMoveOverlayWindowEvent(
+          overlayId,
+          this.isEnableOverlayWindowMoves[overlayId]
         );
-        this.setIframeSrc(urlId, this.urls[urlId]?.url || "#");
-        this.addActiveUrlId(urlId);
+        this.setShowOverlayWindowBorder(
+          overlayId,
+          this.isShowOverlayWindowBorders[overlayId]
+        );
+        this.initOverlayWindow(overlayId, overlay.url, overlay.title);
+        this.setOverlayWindowIframeSrc(overlayId, overlay.url);
+        this.addActiveOverlayId(overlayId);
         this.updateTrayContextMenu();
       });
-      windowState.manage(iframeWindow);
+      windowState.manage(overlayWindow);
 
-      this.windows[urlId] = iframeWindow;
-      this.windowStates[urlId] = windowState;
+      this.overlayWindows[overlayId] = overlayWindow;
+      this.overlayWindowStates[overlayId] = windowState;
     }
   }
 
-  private openActiveURLIframeWindows() {
-    for (const urlId of this.activeUrlIds) {
-      this.openIframeWindow(urlId);
+  private openActiveOverlayWindows() {
+    for (const overlayId of this.activeOverlayIds) {
+      this.openOverlayWindow(overlayId);
     }
   }
 
-  private closeIframeWindow(urlId: string) {
-    const iframeWindow = this.windows[urlId];
-    iframeWindow && iframeWindow.close();
-    this.removeActiveUrlId(urlId);
+  private closeOverlayWindow(overlayId: string) {
+    const overlayWindow = this.overlayWindows[overlayId];
+    overlayWindow && overlayWindow.close();
+    delete this.overlayWindows[overlayId];
+    this.removeActiveOverlayId(overlayId);
     this.updateTrayContextMenu();
+  }
+
+  private reloadOverlayWindow(overlayId: string) {
+    const overlayWindow = this.overlayWindows[overlayId];
+    if (overlayWindow) {
+      this.overlayWindows[overlayId].close();
+      this.openOverlayWindow(overlayId);
+    }
   }
 
   /*************************************************************
    *  Window Preproccesors
    *************************************************************/
 
-  private ignoreXFrameOptionsHeader(iframeWindow: BrowserWindow) {
-    iframeWindow.webContents.session.webRequest.onHeadersReceived(
+  private ignoreXFrameOptionsHeader(overlayWindow: BrowserWindow) {
+    overlayWindow.webContents.session.webRequest.onHeadersReceived(
       { urls: ["*://*/*"] },
       (d, c) => {
         if (!d.responseHeaders) return;
@@ -386,23 +496,23 @@ export class DesktopWebOverlayer {
     );
   }
 
-  private setWindowLangaugeToKR(iframeWindow: BrowserWindow) {
-    iframeWindow.webContents.debugger.attach();
-    iframeWindow.webContents.debugger.sendCommand(
+  private setWindowLangaugeToKR(overlayWindow: BrowserWindow) {
+    overlayWindow.webContents.debugger.attach();
+    overlayWindow.webContents.debugger.sendCommand(
       "Emulation.setUserAgentOverride",
       {
-        userAgent: iframeWindow.webContents.userAgent,
+        userAgent: overlayWindow.webContents.userAgent,
         acceptLanguage: "ko_KR",
       }
     );
   }
 
   private injectCSSStyleToIframe(
-    iframeWindow: BrowserWindow,
+    overlayWindow: BrowserWindow,
     styleString: string
   ) {
     setTimeout(() => {
-      const [iframe] = iframeWindow.webContents.mainFrame.frames;
+      const [iframe] = overlayWindow.webContents.mainFrame.frames;
       const encodedStyleString = this.replaceQuoteEcapeString(styleString);
 
       if (iframe) {
@@ -420,47 +530,103 @@ export class DesktopWebOverlayer {
     }, 10);
   }
 
-  private setIfraneWindowUrlInfo(urlId: string, url: string, title: string) {
-    this.windows[urlId].webContents.send("init", urlId, url, title);
+  private initOverlayWindow(overlayId: string, url: string, title: string) {
+    this.overlayWindows[overlayId].webContents.send(
+      "init",
+      overlayId,
+      url,
+      title
+    );
   }
 
-  private setIframeSrc(urlId: string, url: string) {
-    this.windows[urlId].webContents.send("set-iframe-url", url);
+  private setOverlayWindowIframeSrc(overlayId: string, url: string) {
+    this.overlayWindows[overlayId].webContents.send("set-iframe-url", url);
   }
 
   /*************************************************************
    * Storage Value Setters
    *************************************************************/
 
-  private addActiveUrlId(urlId: string) {
-    if (!this.activeUrlIds.includes(urlId)) {
-      this.activeUrlIds.push(urlId);
-      setStorageValue("activeUrls", this.activeUrlIds);
+  private addOverlay = (overlay: Overlay) => {
+    const newOverlays = { ...this.overlays };
+    newOverlays[uuid()] = overlay;
+
+    setStorageValue("overlays", newOverlays);
+    this.updateOverlays(newOverlays);
+  };
+
+  private removeOverlay = (overlayId: string) => {
+    if (this.overlays[overlayId]) {
+      const newOverlays = { ...this.overlays };
+      delete newOverlays[overlayId];
+
+      setStorageValue("overlays", newOverlays);
+      this.updateOverlays(newOverlays);
+
+      const overlayWindow = this.overlayWindows[overlayId];
+      if (overlayWindow) {
+        overlayWindow.close();
+      }
+    }
+  };
+
+  private editOverlay = (overlayId: string, overlay: Overlay) => {
+    if (this.overlays[overlayId]) {
+      const newOverlays = { ...this.overlays };
+      newOverlays[overlayId] = overlay;
+
+      setStorageValue("overlays", newOverlays);
+      this.updateOverlays(newOverlays);
+      this.reloadOverlayWindow(overlayId);
+    }
+  };
+
+  private addActiveOverlayId(overlayId: string) {
+    if (!this.activeOverlayIds.includes(overlayId)) {
+      this.activeOverlayIds.push(overlayId);
+      setStorageValue("activeOverlayIds", this.activeOverlayIds);
     }
   }
 
-  private removeActiveUrlId(urlId: string) {
-    this.activeUrlIds = this.activeUrlIds.filter((id) => id !== urlId);
-    setStorageValue("activeUrls", this.activeUrlIds);
+  private removeActiveOverlayId(overlayId: string) {
+    this.activeOverlayIds = this.activeOverlayIds.filter(
+      (id) => id !== overlayId
+    );
+    setStorageValue("activeOverlayIds", this.activeOverlayIds);
   }
 
-  private setIgnoreWindowMouseEvent(urlId: string, state: boolean) {
-    this.windows[urlId].setIgnoreMouseEvents(state);
-    this.windows[urlId].webContents.send("ignore-window-mouse-event", state);
-    this.isIgnoreMouseEvent[urlId] = state;
-    setStorageValue("ignoreMouseEvent", this.isIgnoreMouseEvent);
+  private setIgnoreOverlayWindowMouseEvent(overlayId: string, state: boolean) {
+    this.overlayWindows[overlayId].setIgnoreMouseEvents(state);
+    this.overlayWindows[overlayId].webContents.send(
+      "ignore-window-mouse-event",
+      state
+    );
+    this.isIgnoreOverlayWindowMouseEvents[overlayId] = state;
+    setStorageValue(
+      "isIgnoreOverlayWindowMouseEvents",
+      this.isIgnoreOverlayWindowMouseEvents
+    );
   }
 
-  private setEnableMoveWindowEvent(urlId: string, state: boolean) {
-    this.windows[urlId].webContents.send("enable-move-window", state);
-    this.isEnableMoveWindow[urlId] = state;
-    setStorageValue("enableMoveWindow", this.isEnableMoveWindow);
+  private setEnableMoveOverlayWindowEvent(overlayId: string, state: boolean) {
+    this.overlayWindows[overlayId].webContents.send(
+      "enable-move-window",
+      state
+    );
+    this.isEnableOverlayWindowMoves[overlayId] = state;
+    setStorageValue(
+      "isEnableOverlayWindowMoves",
+      this.isEnableOverlayWindowMoves
+    );
   }
 
-  private setShowWindowBorder(urlId: string, state: boolean) {
-    this.windows[urlId].webContents.send("show-border", state);
-    this.isShowBorder[urlId] = state;
-    setStorageValue("showBorder", this.isShowBorder);
+  private setShowOverlayWindowBorder(overlayId: string, state: boolean) {
+    this.overlayWindows[overlayId].webContents.send("show-border", state);
+    this.isShowOverlayWindowBorders[overlayId] = state;
+    setStorageValue(
+      "isShowOverlayWindowBorders",
+      this.isShowOverlayWindowBorders
+    );
   }
 
   /*************************************************************

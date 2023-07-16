@@ -1,13 +1,13 @@
-import { Iframe } from "./Iframe";
-import { AddPage } from "./AddPage";
+import { Overlay } from "./Overlay";
+import { Settings } from "./Settings";
 
 export const router = [
   {
-    path: "/iframe",
-    element: <Iframe />,
+    path: "/overlay",
+    element: <Overlay />,
   },
   {
-    path: "/addPage",
-    element: <AddPage />,
+    path: "/settings",
+    element: <Settings />,
   },
 ];

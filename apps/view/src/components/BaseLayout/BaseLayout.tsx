@@ -16,7 +16,7 @@ export const BaseLayout = ({ children, sideArea }: BaseLayoutProps) => {
           {sideArea}
         </div>
         <div className="w-full h-full overflow-x-hidden overflow-y-auto bg-gray-200">
-          <div className="flex flex-col justify-start items-stretch gap-[10px] w-full h-max p-[20px]">
+          <div className="flex flex-col justify-start items-stretch gap-[20px] w-full h-max p-[20px]">
             {children}
           </div>
         </div>

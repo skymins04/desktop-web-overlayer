@@ -3,7 +3,7 @@ import { ipcRenderer } from "electron";
 declare global {
   interface Window {
     updateWindowPosAndSize: () => void;
-    closeIframeWindow: () => void;
+    closeOverlayWindow: () => void;
     urlId: string;
     title: string;
     url: string;
@@ -14,7 +14,7 @@ ipcRenderer.on("init", (e, urlId: string, url: string, title: string) => {
   window.updateWindowPosAndSize = () => {
     ipcRenderer.send("update-iframe-pos-size", urlId);
   };
-  window.closeIframeWindow = () => {
+  window.closeOverlayWindow = () => {
     ipcRenderer.send("close", urlId);
     window.close();
   };

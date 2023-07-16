@@ -12,7 +12,7 @@ export const logoImagePath = path.resolve(__dirname, "icon.png");
 export const DesktopWebOverlayerRootDirPath = __dirname;
 export const DesktopWebOverlayerViewDirPath = process.env.DEBUG
   ? "http://localhost:5173#"
-  : "file://" + path.resolve(__dirname, "..", "view", "index.html#");
+  : "https://desktop-web-overlayer.betaman.xyz#";
 
 /**
  * Page Routing Path
@@ -20,24 +20,28 @@ export const DesktopWebOverlayerViewDirPath = process.env.DEBUG
 
 export const DesktopWebOverlayerIndexHTMLPath = path.join(
   DesktopWebOverlayerViewDirPath,
-  "iframe"
+  "overlay"
 );
-export const DesktopWebOverlayerAddWebPageHTMLPath = path.join(
+export const DesktopWebOverlayerSettingsHTMLPath = path.join(
   DesktopWebOverlayerViewDirPath,
-  "addPage"
+  "settings"
+);
+export const DesktopWebOverlayerSettingsAddOverlayHTMLPath = path.join(
+  DesktopWebOverlayerViewDirPath,
+  "settings?menu=addOverlay"
 );
 
 /**
  * Preload File Path
  */
 
-export const DesktopWebOverlayerIframePreloadJsPath = path.join(
+export const DesktopWebOverlayerOverlayPreloadJsPath = path.join(
   DesktopWebOverlayerRootDirPath,
   "preloads",
-  "iframePreload.js"
+  "overlayPreload.js"
 );
-export const DesktopWebOverlayerAddPagePreloadJsPath = path.join(
+export const DesktopWebOverlayerSettingsPreloadJsPath = path.join(
   DesktopWebOverlayerRootDirPath,
   "preloads",
-  "addPagePreload.js"
+  "settingsPreload.js"
 );

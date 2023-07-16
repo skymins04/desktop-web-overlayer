@@ -1,36 +1,39 @@
 import electronStorage from "electron-json-storage";
-import { Pages } from "../preloads/addPagePreload";
+
+export type Overlay = {
+  title: string;
+  url: string;
+  customTheme: string;
+  opacity: number;
+  fontSize: number;
+  isEnableFontSize: boolean;
+};
+export type Overlays = Record<string, Overlay>;
 
 export type WindowPosition = {
   x: number;
   y: number;
 };
 
-export type WindowPositions = {
-  [key: string]: WindowPosition;
-};
+export type WindowPositions = Record<string, WindowPosition>;
 
-export type WindowBoolean = {
-  [key: string]: boolean;
-};
+export type WindowBooleans = Record<string, boolean>;
 
 export type WindowSize = {
   width: number;
   height: number;
 };
 
-export type WindowSizes = {
-  [key: string]: WindowSize;
-};
+export type WindowSizes = Record<string, WindowSize>;
 
 export type DesktopWebOverlayerLocalStorage = {
-  position: WindowPositions;
-  size: WindowSizes;
-  ignoreMouseEvent: WindowBoolean;
-  enableMoveWindow: WindowBoolean;
-  showBorder: WindowBoolean;
-  urls: Pages;
-  activeUrls: string[];
+  overlayPositions: WindowPositions;
+  overlaySizes: WindowSizes;
+  isIgnoreOverlayWindowMouseEvents: WindowBooleans;
+  isEnableOverlayWindowMoves: WindowBooleans;
+  isShowOverlayWindowBorders: WindowBooleans;
+  overlays: Overlays;
+  activeOverlayIds: string[];
 };
 
 export const getStorageValue = <

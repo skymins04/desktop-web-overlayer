@@ -2,7 +2,7 @@ import { notifications } from "@mantine/notifications";
 import classNames from "classnames";
 import { useEffect, useState } from "react";
 
-export const Iframe = () => {
+export const Overlay = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [urlInfo, setUrlInfo] = useState<{
     url: string;
@@ -11,7 +11,7 @@ export const Iframe = () => {
   } | null>(null);
 
   const handleClose = () => {
-    window.closeIframeWindow();
+    window.closeOverlayWindow();
   };
 
   const handleupdateWindowPosAndSize = () => {
@@ -47,14 +47,14 @@ export const Iframe = () => {
       </div>
       <button
         id="close-btn"
-        className="hidden [.draggable_&]:flex justify-center items-center absolute top-[5px] right-[5px] w-[20px] h-[20px] p-0 z-50 cursor-pointer"
+        className="hidden [.draggable_&]:flex justify-center items-center absolute top-[5px] right-[5px] w-[20px] h-[20px] p-0 z-40 cursor-pointer"
         onClick={handleClose}
       >
         x
       </button>
       <button
         id="close-btn"
-        className="hidden [.draggable_&]:flex justify-center items-center absolute top-[5px] right-[30px] w-[100px] h-[20px] p-0 z-50 cursor-pointer text-[12px]"
+        className="hidden [.draggable_&]:flex justify-center items-center absolute top-[5px] right-[30px] w-[100px] h-[20px] p-0 z-40 cursor-pointer text-[12px]"
         onClick={handleupdateWindowPosAndSize}
       >
         창 크기/위치 저장
@@ -65,7 +65,7 @@ export const Iframe = () => {
       ></iframe>
       <div
         className={classNames(
-          "fixed top-0 left-0 w-full h-full bg-white duration-1000 flex justify-center items-center text-[28px] font-bold text-teal-700 pointer-events-none",
+          "fixed top-0 left-0 w-full h-full bg-white duration-1000 flex justify-center items-center text-[28px] font-bold text-teal-700 pointer-events-none text-center z-50",
           isLoaded ? "opacity-0" : "opacity-100"
         )}
       >
