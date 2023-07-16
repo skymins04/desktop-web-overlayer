@@ -7,7 +7,7 @@ export const SETTINGS_MENU_TITLE: Record<SettingsMenus, string> = {
 };
 
 export const SETTINGS_MENU_DESCRIPTION: Record<SettingsMenus, string> = {
-  overlayList: "등록된 웹페이지 오버레이 목록입니다.",
+  overlayList: `등록된 웹페이지 오버레이 목록입니다. "..." 버튼을 통해 오버레이를 삭제/조작할 수 있습니다.`,
   addOverlay:
     "데스크탑 화면 오버레이로 띄울 웹페이지의 URL를 추가할 수 있습니다.",
   editOverlay:

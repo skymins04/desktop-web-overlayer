@@ -44,7 +44,9 @@ export const Overlay = () => {
         className="hidden [.draggable_&]:flex justify-stretch items-stretch w-full h-[30px] bg-gray-600 text-white font-bold text-[14px] pr-[145px] select-none fixed top-0 left-0"
       >
         <div className="flex items-center justify-center w-full h-full">
-          {urlInfo?.title || "Desktop Web Overlayer"}
+          <div className="w-full max-w-[calc(100%-40px)] overflow-hidden whitespace-nowrap text-center text-ellipsis">
+            {urlInfo?.title || "Desktop Web Overlayer"}
+          </div>
         </div>
       </div>
       <button

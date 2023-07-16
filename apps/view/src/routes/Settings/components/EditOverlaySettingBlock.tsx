@@ -67,7 +67,7 @@ export const EditOverlaySettingBlock = () => {
       description={SETTINGS_MENU_DESCRIPTION.editOverlay}
       footer={
         <Button
-          size="sm"
+          size="xs"
           onClick={handleSubmit}
           disabled={!isValid || !isDirty || selectedOverlayId === null}
         >

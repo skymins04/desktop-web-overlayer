@@ -42,7 +42,7 @@ export const AddOverlaySettingBlock = () => {
       title={SETTINGS_MENU_TITLE.addOverlay}
       description={SETTINGS_MENU_DESCRIPTION.addOverlay}
       footer={
-        <Button size="sm" onClick={handleSubmit} disabled={!isValid}>
+        <Button size="xs" onClick={handleSubmit} disabled={!isValid}>
           추가
         </Button>
       }
