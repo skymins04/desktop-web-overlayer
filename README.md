@@ -46,6 +46,7 @@ pnpm --filter @desktop-web-overlayer/view {commands}
   - 오버레이 투명 배경 기능
   - 오버레이 창 전체 투명도 조절 기능
   - 오버레이 웹페이지의 CSS 커스터마이징 기능
+  - 오버레이 폰트 크기 조절 기능
 
 <p align="center">
   <img src="assets/readme-5.png" width="300px"/>
