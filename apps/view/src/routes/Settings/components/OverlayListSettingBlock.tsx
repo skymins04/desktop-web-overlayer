@@ -27,9 +27,9 @@ export const OverlayListSettingBlock = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showAllList, setShowAllList] = useState(false);
 
-  const totalPageCount = Math.ceil(
-    Object.keys(overlays).length / overlayCropListItemMaxCount
-  );
+  const getPageCount = (itemCount: number) =>
+    Math.ceil(itemCount / overlayCropListItemMaxCount);
+  const totalPageCount = getPageCount(Object.keys(overlays).length);
   const isAvailableIncrease = currentPage < totalPageCount;
   const isAvailableDecrease = currentPage > 1;
 
@@ -62,13 +62,27 @@ export const OverlayListSettingBlock = () => {
   };
 
   useEffect(() => {
-    window.addGetOverlayListListener((_overlays, _activeOverlayIds) => {
-      setOverlays(_overlays);
-      setActiveOverlayIds(_activeOverlayIds);
-      setCurrentPage(1);
-    });
     window.getOverlayList();
   }, []);
+
+  useEffect(() => {
+    const getOverlayList = (
+      _overlays: Overlays,
+      _activeOverlayIds: string[]
+    ) => {
+      setOverlays(_overlays);
+      setActiveOverlayIds(_activeOverlayIds);
+
+      if (currentPage > getPageCount(Object.keys(_overlays).length)) {
+        setCurrentPage(1);
+      }
+    };
+    window.addGetOverlayListListener(getOverlayList);
+
+    return () => {
+      window.removeGetOverlayListListener(getOverlayList);
+    };
+  }, [currentPage]);
 
   return (
     <>
