@@ -7,20 +7,39 @@ export type Overlay = {
   isEnableFontSize: boolean;
 };
 export type Overlays = Record<string, Overlay>;
+export type WindowBooleans = Record<string, boolean>;
 
 declare global {
   interface Window {
     addWebOverlay: (overlay: Overlay) => void;
     updateWindowPosAndSize: () => void;
     addGetOverlayListListener: (
-      cb: (overlays: Overlays, activeOverlayIds: string[]) => void
+      cb: (
+        overlays: Overlays,
+        activeOverlayIds: string[],
+        isIgnoreOverlayWindowMouseEvents: WindowBooleans,
+        isEnableOverlayWindowMoves: WindowBooleans,
+        isShowOverlayWindowBorders: WindowBooleans
+      ) => void
     ) => void;
     removeGetOverlayListListener: (
-      cb: (overlays: Overlays, activeOverlayIds: string[]) => void
+      cb: (
+        overlays: Overlays,
+        activeOverlayIds: string[],
+        isIgnoreOverlayWindowMouseEvents: WindowBooleans,
+        isEnableOverlayWindowMoves: WindowBooleans,
+        isShowOverlayWindowBorders: WindowBooleans
+      ) => void
     ) => void;
     getOverlayListListeners: Record<
       string,
-      (overlays: Overlays, activeOverlayIds: string[]) => void
+      (
+        overlays: Overlays,
+        activeOverlayIds: string[],
+        isIgnoreOverlayWindowMouseEvents: WindowBooleans,
+        isEnableOverlayWindowMoves: WindowBooleans,
+        isShowOverlayWindowBorders: WindowBooleans
+      ) => void
     >;
     getOverlayList: () => void;
     deleteOverlayById: (overlayId: string) => void;
@@ -28,6 +47,9 @@ declare global {
     openOverlayById: (overlayId: string) => void;
     closeOverlayById: (overlayId: string) => void;
     reloadOverlayById: (overlayId: string) => void;
+    toggleIgnoreOverlayWindowMouseEventById: (overlayId: string) => void;
+    toggleEnableOverlayWindowMoveById: (overlayId: string) => void;
+    toggleShowOverlayWindowBorderById: (overlayId: string) => void;
     urlId: string;
     title: string;
     url: string;

@@ -150,6 +150,33 @@ export class DesktopWebOverlayer {
         this.updateTrayContextMenu();
       }
     });
+    ipcMain.on(
+      IpcEventKeys.IgnoreMouseEventWebOverlay,
+      (e, overlayId: string) => {
+        this.setIgnoreOverlayWindowMouseEvent(
+          overlayId,
+          !this.isIgnoreOverlayWindowMouseEvents[overlayId]
+        );
+        this.sendOverlayInfoToOverlayWindow(e.sender);
+        this.updateTrayContextMenu();
+      }
+    );
+    ipcMain.on(IpcEventKeys.EnableMoveWebOverlay, (e, overlayId: string) => {
+      this.setEnableMoveOverlayWindowEvent(
+        overlayId,
+        !this.isEnableOverlayWindowMoves[overlayId]
+      );
+      this.sendOverlayInfoToOverlayWindow(e.sender);
+      this.updateTrayContextMenu();
+    });
+    ipcMain.on(IpcEventKeys.ShowBorderWebOverlay, (e, overlayId: string) => {
+      this.setShowOverlayWindowBorder(
+        overlayId,
+        !this.isShowOverlayWindowBorders[overlayId]
+      );
+      this.sendOverlayInfoToOverlayWindow(e.sender);
+      this.updateTrayContextMenu();
+    });
   }
 
   private initWindows() {
@@ -351,7 +378,6 @@ export class DesktopWebOverlayer {
     });
   }
 
-  // TODO: front 내 창 종료 버튼 외에는 창을 종료할 수 없도록 해야함.
   private openOverlayWindow(overlayId: string) {
     const overlay = this.overlays[overlayId];
     if (overlay) {
@@ -423,6 +449,13 @@ export class DesktopWebOverlayer {
           this.sendOverlayInfoToOverlayWindow(this.settingsWindow.webContents);
         }
       });
+      const showSavePositionSizeButton = () => {
+        overlayWindow.webContents.send(IpcEventKeys.ShowPositionSizeSaveButton);
+      };
+      overlayWindow.on("move", showSavePositionSizeButton);
+      overlayWindow.on("moved", showSavePositionSizeButton);
+      overlayWindow.on("resize", showSavePositionSizeButton);
+      overlayWindow.on("resized", showSavePositionSizeButton);
       windowState.manage(overlayWindow);
 
       this.overlayWindows[overlayId] = overlayWindow;
@@ -627,7 +660,10 @@ export class DesktopWebOverlayer {
     webContents.send(
       IpcEventKeys.GetWebOverlayList,
       this.overlays,
-      this.activeOverlayIds
+      this.activeOverlayIds,
+      this.isIgnoreOverlayWindowMouseEvents,
+      this.isEnableOverlayWindowMoves,
+      this.isShowOverlayWindowBorders
     );
   }
 }
