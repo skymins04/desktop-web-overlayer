@@ -1,7 +1,7 @@
 import path from "path";
 
 export const title = "Desktop Web Overlayer";
-export const version = `v1.0.1`;
+export const version = `v1.0.2`;
 export const titleVersion = `${title} - ${version}`;
 export const logoImagePath = path.resolve(__dirname, "icon.png");
 
@@ -18,6 +18,10 @@ export const DesktopWebOverlayerViewDirPath = process.env.DEBUG
  * Page Routing Path
  */
 
+export const DesktopWebOverlayerCheckUpdateHTMLPath = path.join(
+  DesktopWebOverlayerRootDirPath,
+  "checkUpdate.html"
+);
 export const DesktopWebOverlayerIndexHTMLPath = path.join(
   DesktopWebOverlayerViewDirPath,
   "overlay"
@@ -54,4 +58,5 @@ export const IpcEventKeys = {
   IgnoreMouseEventWebOverlay: "ignore-mouse-event-web-overlay",
   EnableMoveWebOverlay: "enable-move-web-overlay",
   SetIframeUrlWebOverlay: "set-iframe-url-web-overlay",
+  ShowPositionSizeSaveButton: "show-position-size-save-button",
 };

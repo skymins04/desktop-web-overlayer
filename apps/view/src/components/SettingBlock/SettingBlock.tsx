@@ -37,17 +37,17 @@ export const SettingBlock = ({
       )}
       <div
         className={classNames(
-          "w-full h-max min-h-max rounded-[6px] shadow-md overflow-hidden",
+          "w-full h-max min-h-max shadow-md rounded-[6px]",
           className
         )}
       >
-        <div className="w-full relative p-[20px] bg-white flex flex-col justify-center items-center gap-[10px]">
+        <div className="w-full relative p-[20px] bg-white flex flex-col justify-center items-center gap-[10px] rounded-t-[6px]">
           {children}
         </div>
         {footer && (
           <div
             className={classNames(
-              "w-full relative px-[20px] py-[10px] flex justify-end items-center gap-[10px] bg-gray-300",
+              "w-full relative px-[20px] py-[10px] flex justify-end items-center gap-[10px] bg-gray-300 rounded-b-[6px]",
               footerClassName
             )}
           >

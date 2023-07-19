@@ -1,19 +1,37 @@
 import { ipcRenderer } from "electron";
-import { Overlay, Overlays } from "./utils";
+import { Overlay, Overlays, WindowBooleans } from "./utils";
 import { IpcEventKeys } from "./constants";
 
 declare global {
   interface Window {
     addWebOverlay: (overlay: Overlay) => void;
     addGetOverlayListListener: (
-      cb: (overlays: Overlays, activeOverlayIds: string[]) => void
+      cb: (
+        overlays: Overlays,
+        activeOverlayIds: string[],
+        isIgnoreOverlayWindowMouseEvents: WindowBooleans,
+        isEnableOverlayWindowMoves: WindowBooleans,
+        isShowOverlayWindowBorders: WindowBooleans
+      ) => void
     ) => void;
     removeGetOverlayListListener: (
-      cb: (overlays: Overlays, activeOverlayIds: string[]) => void
+      cb: (
+        overlays: Overlays,
+        activeOverlayIds: string[],
+        isIgnoreOverlayWindowMouseEvents: WindowBooleans,
+        isEnableOverlayWindowMoves: WindowBooleans,
+        isShowOverlayWindowBorders: WindowBooleans
+      ) => void
     ) => void;
     getOverlayListListeners: Record<
       string,
-      (overlays: Overlays, activeOverlayIds: string[]) => void
+      (
+        overlays: Overlays,
+        activeOverlayIds: string[],
+        isIgnoreOverlayWindowMouseEvents: WindowBooleans,
+        isEnableOverlayWindowMoves: WindowBooleans,
+        isShowOverlayWindowBorders: WindowBooleans
+      ) => void
     >;
     getOverlayList: () => void;
     deleteOverlayById: (overlayId: string) => void;
@@ -21,6 +39,9 @@ declare global {
     openOverlayById: (overlayId: string) => void;
     closeOverlayById: (overlayId: string) => void;
     reloadOverlayById: (overlayId: string) => void;
+    toggleIgnoreOverlayWindowMouseEventById: (overlayId: string) => void;
+    toggleEnableOverlayWindowMoveById: (overlayId: string) => void;
+    toggleShowOverlayWindowBorderById: (overlayId: string) => void;
     updateWindowPosAndSize: () => void;
     urlId: string;
     title: string;
@@ -68,6 +89,10 @@ ipcRenderer.on(IpcEventKeys.EnableMoveWebOverlay, (e, isEnabled: boolean) => {
 
 ipcRenderer.on(IpcEventKeys.SetIframeUrlWebOverlay, (e, url: string) => {
   document.getElementById("iframe")?.setAttribute("src", url);
+});
+
+ipcRenderer.on(IpcEventKeys.ShowPositionSizeSaveButton, () => {
+  document.getElementsByTagName("html")[0].classList.add("need-save");
 });
 
 window.addEventListener("keydown", (e) => {
@@ -120,9 +145,22 @@ window.reloadOverlayById = (overlayId) => {
 
 ipcRenderer.on(
   IpcEventKeys.GetWebOverlayList,
-  (e, overlays: Overlays, activeOverlayIds: string[]) => {
+  (
+    e,
+    overlays: Overlays,
+    activeOverlayIds: string[],
+    isIgnoreOverlayWindowMouseEvents: WindowBooleans,
+    isEnableOverlayWindowMoves: WindowBooleans,
+    isShowOverlayWindowBorders: WindowBooleans
+  ) => {
     for (const [, listener] of Object.entries(window.getOverlayListListeners)) {
-      listener(overlays, activeOverlayIds);
+      listener(
+        overlays,
+        activeOverlayIds,
+        isIgnoreOverlayWindowMouseEvents,
+        isEnableOverlayWindowMoves,
+        isShowOverlayWindowBorders
+      );
     }
   }
 );
@@ -133,4 +171,16 @@ window.deleteOverlayById = (overlayId) => {
 
 window.editOverlay = (overlayId, overlay) => {
   ipcRenderer.send(IpcEventKeys.EditWebOverlay, overlayId, overlay);
+};
+
+window.toggleIgnoreOverlayWindowMouseEventById = (overlayId) => {
+  ipcRenderer.send(IpcEventKeys.IgnoreMouseEventWebOverlay, overlayId);
+};
+
+window.toggleEnableOverlayWindowMoveById = (overlayId) => {
+  ipcRenderer.send(IpcEventKeys.EnableMoveWebOverlay, overlayId);
+};
+
+window.toggleShowOverlayWindowBorderById = (overlayId) => {
+  ipcRenderer.send(IpcEventKeys.ShowBorderWebOverlay, overlayId);
 };

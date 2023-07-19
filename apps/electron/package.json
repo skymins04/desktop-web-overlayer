@@ -1,10 +1,10 @@
 {
   "name": "@desktop-web-overlayer/electron",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc && copyfiles -f ./icon.png ./icon.ico dist",
+    "build": "tsc && copyfiles -f ./icon.png ./icon.ico ./checkUpdate.html dist",
     "start": "electron .",
     "dev": "pnpm build && cross-env DEBUG=true electron .",
     "deploy:mac": "electron-builder --mac",
@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "electron-json-storage": "^4.6.0",
+    "electron-updater": "^6.1.1",
     "electron-window-state": "^5.0.3",
     "uuidv4": "^6.2.13"
   },

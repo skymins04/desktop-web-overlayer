@@ -1,15 +1,14 @@
-import { Overlays } from "@/@types";
+import { Overlays, WindowBooleans } from "@/@types";
 import { SettingBlock } from "@/components";
 import { SETTINGS_MENU_DESCRIPTION, SETTINGS_MENU_TITLE } from "@/constants";
 import { Button, Menu, Modal } from "@mantine/core";
 import {
-  DeleteOutline,
+  Check,
   KeyboardArrowDown,
   KeyboardArrowLeft,
   KeyboardArrowRight,
   KeyboardArrowUp,
   MoreVert,
-  Replay,
 } from "@mui/icons-material";
 import classNames from "classnames";
 import { useEffect, useState } from "react";
@@ -24,6 +23,14 @@ export const OverlayListSettingBlock = () => {
   >(null);
   const [overlays, setOverlays] = useState<Overlays>({});
   const [activeOverlayIds, setActiveOverlayIds] = useState<string[]>([]);
+  const [
+    isIgnoreOverlayWindowMouseEvents,
+    setIsIgnoreOverlayWindowMouseEvents,
+  ] = useState<WindowBooleans>({});
+  const [isEnableOverlayWindowMoves, setIsEnableOverlayWindowMoves] =
+    useState<WindowBooleans>({});
+  const [isShowOverlayWindowBorders, setIsShowOverlayWindowBorders] =
+    useState<WindowBooleans>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [showAllList, setShowAllList] = useState(false);
 
@@ -32,6 +39,15 @@ export const OverlayListSettingBlock = () => {
   const totalPageCount = getPageCount(Object.keys(overlays).length);
   const isAvailableIncrease = currentPage < totalPageCount;
   const isAvailableDecrease = currentPage > 1;
+
+  const handleIgnoreOverlayWindowMouseEvent = (key: string) => () =>
+    window.toggleIgnoreOverlayWindowMouseEventById(key);
+
+  const handleEnableOverlayWindowMove = (key: string) => () =>
+    window.toggleEnableOverlayWindowMoveById(key);
+
+  const handleShowOverlayWindowBorder = (key: string) => () =>
+    window.toggleShowOverlayWindowBorderById(key);
 
   const handleReloadOverlay = (key: string) => () =>
     window.reloadOverlayById(key);
@@ -68,10 +84,16 @@ export const OverlayListSettingBlock = () => {
   useEffect(() => {
     const getOverlayList = (
       _overlays: Overlays,
-      _activeOverlayIds: string[]
+      _activeOverlayIds: string[],
+      _isIgnoreOverlayWindowMouseEvents: WindowBooleans,
+      _isEnableOverlayWindowMoves: WindowBooleans,
+      _isShowOverlayWindowBorders: WindowBooleans
     ) => {
       setOverlays(_overlays);
       setActiveOverlayIds(_activeOverlayIds);
+      setIsIgnoreOverlayWindowMouseEvents(_isIgnoreOverlayWindowMouseEvents);
+      setIsEnableOverlayWindowMoves(_isEnableOverlayWindowMoves);
+      setIsShowOverlayWindowBorders(_isShowOverlayWindowBorders);
 
       if (currentPage > getPageCount(Object.keys(_overlays).length)) {
         setCurrentPage(1);
@@ -178,7 +200,7 @@ export const OverlayListSettingBlock = () => {
                       열기
                     </Button>
                   )}
-                  <Menu shadow="md" width={200}>
+                  <Menu position="bottom-end" shadow="md" width={200}>
                     <Menu.Target>
                       <Button
                         size="xs"
@@ -192,9 +214,36 @@ export const OverlayListSettingBlock = () => {
                       {isOpen && (
                         <>
                           <Menu.Item
-                            icon={<Replay fontSize="small" />}
-                            onClick={handleReloadOverlay(key)}
+                            icon={
+                              isIgnoreOverlayWindowMouseEvents[key] ? (
+                                <Check fontSize="small" />
+                              ) : undefined
+                            }
+                            onClick={handleIgnoreOverlayWindowMouseEvent(key)}
                           >
+                            마우스 클릭 통과
+                          </Menu.Item>
+                          <Menu.Item
+                            icon={
+                              isEnableOverlayWindowMoves[key] ? (
+                                <Check fontSize="small" />
+                              ) : undefined
+                            }
+                            onClick={handleEnableOverlayWindowMove(key)}
+                          >
+                            프레임 상단 핸들 보기
+                          </Menu.Item>
+                          <Menu.Item
+                            icon={
+                              isShowOverlayWindowBorders[key] ? (
+                                <Check fontSize="small" />
+                              ) : undefined
+                            }
+                            onClick={handleShowOverlayWindowBorder(key)}
+                          >
+                            오버레이 외곽선 보기
+                          </Menu.Item>
+                          <Menu.Item onClick={handleReloadOverlay(key)}>
                             오버레이 새로고침
                           </Menu.Item>
                           <Menu.Divider />
@@ -202,7 +251,6 @@ export const OverlayListSettingBlock = () => {
                       )}
                       <Menu.Item
                         color="red"
-                        icon={<DeleteOutline fontSize="small" />}
                         onClick={handleSetTargetDeleteOverlay(key)}
                       >
                         오버레이 삭제

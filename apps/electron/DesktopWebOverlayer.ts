@@ -26,13 +26,25 @@ import {
   DesktopWebOverlayerSettingsHTMLPath,
   DesktopWebOverlayerPreloadJsPath,
   IpcEventKeys,
+  DesktopWebOverlayerCheckUpdateHTMLPath,
 } from "./constants";
 import { uuid } from "uuidv4";
+import { autoUpdater } from "electron-updater";
 
 export class DesktopWebOverlayer {
   constructor() {
     app.on("ready", () => {
-      this.init();
+      autoUpdater.on("update-downloaded", () => {
+        setTimeout(() => {
+          autoUpdater.quitAndInstall();
+          app.exit();
+        }, 1000);
+      });
+      this.openCheckUpdateWindow();
+      autoUpdater.checkForUpdates().then(() => {
+        this.closeCheckUpdateWindow();
+        this.init();
+      });
     });
     app.on("window-all-closed", () => {});
   }
@@ -41,6 +53,7 @@ export class DesktopWebOverlayer {
    * System Objects
    *************************************************************/
 
+  private checkUpdateWindow: BrowserWindow | null = null;
   private settingsWindow: BrowserWindow | null = null;
   private overlayWindows: Record<string, BrowserWindow> = {};
   private overlayWindowStates: Record<string, State> = {};
@@ -149,6 +162,33 @@ export class DesktopWebOverlayer {
         this.sendOverlayInfoToOverlayWindow(e.sender);
         this.updateTrayContextMenu();
       }
+    });
+    ipcMain.on(
+      IpcEventKeys.IgnoreMouseEventWebOverlay,
+      (e, overlayId: string) => {
+        this.setIgnoreOverlayWindowMouseEvent(
+          overlayId,
+          !this.isIgnoreOverlayWindowMouseEvents[overlayId]
+        );
+        this.sendOverlayInfoToOverlayWindow(e.sender);
+        this.updateTrayContextMenu();
+      }
+    );
+    ipcMain.on(IpcEventKeys.EnableMoveWebOverlay, (e, overlayId: string) => {
+      this.setEnableMoveOverlayWindowEvent(
+        overlayId,
+        !this.isEnableOverlayWindowMoves[overlayId]
+      );
+      this.sendOverlayInfoToOverlayWindow(e.sender);
+      this.updateTrayContextMenu();
+    });
+    ipcMain.on(IpcEventKeys.ShowBorderWebOverlay, (e, overlayId: string) => {
+      this.setShowOverlayWindowBorder(
+        overlayId,
+        !this.isShowOverlayWindowBorders[overlayId]
+      );
+      this.sendOverlayInfoToOverlayWindow(e.sender);
+      this.updateTrayContextMenu();
     });
   }
 
@@ -322,6 +362,27 @@ export class DesktopWebOverlayer {
    * Window Opener/Closer
    *************************************************************/
 
+  private openCheckUpdateWindow() {
+    this.checkUpdateWindow = new BrowserWindow({
+      width: 300,
+      height: 300,
+      center: true,
+      alwaysOnTop: true,
+      title: "업데이트 확인",
+      frame: false,
+      webPreferences: {
+        webSecurity: true,
+        nodeIntegration: true,
+        contextIsolation: false,
+      },
+    });
+    this.checkUpdateWindow.loadFile(DesktopWebOverlayerCheckUpdateHTMLPath);
+  }
+
+  private closeCheckUpdateWindow() {
+    this.checkUpdateWindow?.close();
+  }
+
   private openSettingsWindow(menu?: string) {
     this.settingsWindow = new BrowserWindow({
       center: true,
@@ -351,7 +412,6 @@ export class DesktopWebOverlayer {
     });
   }
 
-  // TODO: front 내 창 종료 버튼 외에는 창을 종료할 수 없도록 해야함.
   private openOverlayWindow(overlayId: string) {
     const overlay = this.overlays[overlayId];
     if (overlay) {
@@ -423,6 +483,13 @@ export class DesktopWebOverlayer {
           this.sendOverlayInfoToOverlayWindow(this.settingsWindow.webContents);
         }
       });
+      const showSavePositionSizeButton = () => {
+        overlayWindow.webContents.send(IpcEventKeys.ShowPositionSizeSaveButton);
+      };
+      overlayWindow.on("move", showSavePositionSizeButton);
+      overlayWindow.on("moved", showSavePositionSizeButton);
+      overlayWindow.on("resize", showSavePositionSizeButton);
+      overlayWindow.on("resized", showSavePositionSizeButton);
       windowState.manage(overlayWindow);
 
       this.overlayWindows[overlayId] = overlayWindow;
@@ -627,7 +694,10 @@ export class DesktopWebOverlayer {
     webContents.send(
       IpcEventKeys.GetWebOverlayList,
       this.overlays,
-      this.activeOverlayIds
+      this.activeOverlayIds,
+      this.isIgnoreOverlayWindowMouseEvents,
+      this.isEnableOverlayWindowMoves,
+      this.isShowOverlayWindowBorders
     );
   }
 }

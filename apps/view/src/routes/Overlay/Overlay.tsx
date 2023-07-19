@@ -16,6 +16,7 @@ export const Overlay = () => {
 
   const handleupdateWindowPosAndSize = () => {
     window.updateWindowPosAndSize();
+    document.querySelector("html")?.classList.remove("need-save");
     notifications.show({
       title: "창 크기/위치 저장 완료!",
       message:
@@ -41,7 +42,7 @@ export const Overlay = () => {
     <>
       <div
         id="frame-top"
-        className="hidden [.draggable_&]:flex justify-stretch items-stretch w-full h-[30px] bg-gray-600 text-white font-bold text-[14px] pr-[145px] select-none fixed top-0 left-0"
+        className="hidden [.draggable_&]:flex justify-stretch items-stretch w-full h-[30px] bg-gray-600 text-white font-bold text-[14px] pr-[40px] [.need-save_&]:pr-[145px] select-none fixed top-0 left-0"
       >
         <div className="flex items-center justify-center w-full h-full">
           <div className="w-full max-w-[calc(100%-40px)] overflow-hidden whitespace-nowrap text-center text-ellipsis">
@@ -50,15 +51,13 @@ export const Overlay = () => {
         </div>
       </div>
       <button
-        id="close-btn"
         className="hidden [.draggable_&]:flex justify-center items-center absolute top-[5px] right-[5px] w-[20px] h-[20px] p-0 z-40 cursor-pointer text-[10px]"
         onClick={handleClose}
       >
         x
       </button>
       <button
-        id="close-btn"
-        className="hidden [.draggable_&]:flex justify-center items-center absolute top-[5px] right-[30px] w-[100px] h-[20px] p-0 z-40 cursor-pointer text-[10px]"
+        className="hidden [.need-save.draggable_&]:flex justify-center items-center absolute top-[5px] right-[30px] w-[100px] h-[20px] p-0 z-40 cursor-pointer text-[10px]"
         onClick={handleupdateWindowPosAndSize}
       >
         창 크기/위치 저장

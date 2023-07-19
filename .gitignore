@@ -130,3 +130,5 @@ dist
 .pnp.*
 
 .ultra.cache.json
+
+.DS_Store
