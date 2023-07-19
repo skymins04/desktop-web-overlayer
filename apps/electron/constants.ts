@@ -1,7 +1,7 @@
 import path from "path";
 
 export const title = "Desktop Web Overlayer";
-export const version = `v1.0.2`;
+export const version = `v1.0.3`;
 export const titleVersion = `${title} - ${version}`;
 export const logoImagePath = path.resolve(__dirname, "icon.png");
 
@@ -59,4 +59,6 @@ export const IpcEventKeys = {
   EnableMoveWebOverlay: "enable-move-web-overlay",
   SetIframeUrlWebOverlay: "set-iframe-url-web-overlay",
   ShowPositionSizeSaveButton: "show-position-size-save-button",
+  ImportOverlay: "import-overlay",
+  ExportOverlay: "export-overlay",
 };

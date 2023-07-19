@@ -50,6 +50,8 @@ declare global {
     toggleIgnoreOverlayWindowMouseEventById: (overlayId: string) => void;
     toggleEnableOverlayWindowMoveById: (overlayId: string) => void;
     toggleShowOverlayWindowBorderById: (overlayId: string) => void;
+    exportOverlays: (cb: (exportedOverlays: ExportedOverlays) => void) => void;
+    importOverlays: (exportedOverlays: ExportedOverlays) => void;
     urlId: string;
     title: string;
     url: string;

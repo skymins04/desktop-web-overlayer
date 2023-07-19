@@ -16,6 +16,8 @@ import {
   setStorageValue,
   Overlay,
   Overlays,
+  ExportedOverlay,
+  ExportedOverlays,
 } from "./utils";
 import {
   DesktopWebOverlayerIndexHTMLPath,
@@ -30,6 +32,7 @@ import {
 } from "./constants";
 import { uuid } from "uuidv4";
 import { autoUpdater } from "electron-updater";
+import { ExportedOverlaysValidationSchema } from "./utils/validators";
 
 export class DesktopWebOverlayer {
   constructor() {
@@ -189,6 +192,79 @@ export class DesktopWebOverlayer {
       );
       this.sendOverlayInfoToOverlayWindow(e.sender);
       this.updateTrayContextMenu();
+    });
+    ipcMain.on(
+      IpcEventKeys.ImportOverlay,
+      (e, exportedOverlays: ExportedOverlays) => {
+        try {
+          ExportedOverlaysValidationSchema.parse(exportedOverlays);
+          const { overlays, activeOverlayIds } = exportedOverlays;
+          this.overlayWindowPositions = {};
+          this.overlayWindowSizes = {};
+          this.isIgnoreOverlayWindowMouseEvents = {};
+          this.isEnableOverlayWindowMoves = {};
+          this.isShowOverlayWindowBorders = {};
+          this.overlays = {};
+          this.setActiveOverlayIds(activeOverlayIds);
+          for (const [
+            overlayId,
+            {
+              overlayPosition,
+              overlaySize,
+              isIgnoreOverlayWindowMouseEvent,
+              isEnableOverlayWindowMove,
+              isShowOverlayWindowBorder,
+              ...overlay
+            },
+          ] of Object.entries(overlays)) {
+            this.overlayWindowPositions[overlayId] = overlayPosition;
+            this.overlayWindowSizes[overlayId] = overlaySize;
+            this.isIgnoreOverlayWindowMouseEvents[overlayId] =
+              isIgnoreOverlayWindowMouseEvent;
+            this.isEnableOverlayWindowMoves[overlayId] =
+              isEnableOverlayWindowMove;
+            this.isShowOverlayWindowBorders[overlayId] =
+              isShowOverlayWindowBorder;
+            this.overlays[overlayId] = overlay;
+          }
+          setStorageValue("overlayPositions", this.overlayWindowPositions);
+          setStorageValue("overlaySizes", this.overlayWindowSizes);
+          setStorageValue(
+            "isIgnoreOverlayWindowMouseEvents",
+            this.isIgnoreOverlayWindowMouseEvents
+          );
+          setStorageValue(
+            "isEnableOverlayWindowMoves",
+            this.isEnableOverlayWindowMoves
+          );
+          setStorageValue(
+            "isShowOverlayWindowBorders",
+            this.isShowOverlayWindowBorders
+          );
+          setStorageValue("overlays", this.overlays);
+          setTimeout(() => {
+            app.relaunch();
+          }, 100);
+        } catch (e) {}
+      }
+    );
+    ipcMain.on(IpcEventKeys.ExportOverlay, (e) => {
+      const exportedOverlays: ExportedOverlays = {
+        overlays: {},
+        activeOverlayIds: this.activeOverlayIds,
+      };
+      for (const [overlayId, overlay] of Object.entries(this.overlays)) {
+        exportedOverlays.overlays[overlayId] = {
+          ...overlay,
+          overlayPosition: this.overlayWindowPositions[overlayId],
+          overlaySize: this.overlayWindowSizes[overlayId],
+          isIgnoreOverlayWindowMouseEvent:
+            this.isIgnoreOverlayWindowMouseEvents[overlayId],
+          isEnableOverlayWindowMove: this.isEnableOverlayWindowMoves[overlayId],
+          isShowOverlayWindowBorder: this.isShowOverlayWindowBorders[overlayId],
+        };
+      }
+      e.sender.send(IpcEventKeys.ExportOverlay, exportedOverlays);
     });
   }
 
@@ -630,6 +706,11 @@ export class DesktopWebOverlayer {
       this.reloadOverlayWindow(overlayId);
     }
   };
+
+  private setActiveOverlayIds(activeOverlayIds: string[]) {
+    this.activeOverlayIds = activeOverlayIds;
+    setStorageValue("activeOverlayIds", this.activeOverlayIds);
+  }
 
   private addActiveOverlayId(overlayId: string) {
     if (!this.activeOverlayIds.includes(overlayId)) {

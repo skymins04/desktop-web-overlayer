@@ -1,5 +1,21 @@
 import electronStorage from "electron-json-storage";
 
+export type WindowBooleans = Record<string, boolean>;
+
+export type WindowPosition = {
+  x: number;
+  y: number;
+};
+
+export type WindowPositions = Record<string, WindowPosition>;
+
+export type WindowSize = {
+  width: number;
+  height: number;
+};
+
+export type WindowSizes = Record<string, WindowSize>;
+
 export type Overlay = {
   title: string;
   url: string;
@@ -9,22 +25,17 @@ export type Overlay = {
   isEnableFontSize: boolean;
 };
 export type Overlays = Record<string, Overlay>;
-
-export type WindowPosition = {
-  x: number;
-  y: number;
+export type ExportedOverlay = {
+  overlayPosition: WindowPosition;
+  overlaySize: WindowSize;
+  isIgnoreOverlayWindowMouseEvent: boolean;
+  isEnableOverlayWindowMove: boolean;
+  isShowOverlayWindowBorder: boolean;
+} & Overlay;
+export type ExportedOverlays = {
+  overlays: Record<string, ExportedOverlay>;
+  activeOverlayIds: string[];
 };
-
-export type WindowPositions = Record<string, WindowPosition>;
-
-export type WindowBooleans = Record<string, boolean>;
-
-export type WindowSize = {
-  width: number;
-  height: number;
-};
-
-export type WindowSizes = Record<string, WindowSize>;
 
 export type DesktopWebOverlayerLocalStorage = {
   overlayPositions: WindowPositions;

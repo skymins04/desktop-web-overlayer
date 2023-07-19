@@ -1,5 +1,5 @@
 import { ipcRenderer } from "electron";
-import { Overlay, Overlays, WindowBooleans } from "./utils";
+import { ExportedOverlays, Overlay, Overlays, WindowBooleans } from "./utils";
 import { IpcEventKeys } from "./constants";
 
 declare global {
@@ -42,6 +42,8 @@ declare global {
     toggleIgnoreOverlayWindowMouseEventById: (overlayId: string) => void;
     toggleEnableOverlayWindowMoveById: (overlayId: string) => void;
     toggleShowOverlayWindowBorderById: (overlayId: string) => void;
+    exportOverlays: (cb: (exportedOverlays: ExportedOverlays) => void) => void;
+    importOverlays: (exportedOverlays: ExportedOverlays) => void;
     updateWindowPosAndSize: () => void;
     urlId: string;
     title: string;
@@ -183,4 +185,18 @@ window.toggleEnableOverlayWindowMoveById = (overlayId) => {
 
 window.toggleShowOverlayWindowBorderById = (overlayId) => {
   ipcRenderer.send(IpcEventKeys.ShowBorderWebOverlay, overlayId);
+};
+
+window.exportOverlays = (cb) => {
+  ipcRenderer.once(
+    IpcEventKeys.ExportOverlay,
+    (e, exportedOverlays: ExportedOverlays) => {
+      cb(exportedOverlays);
+    }
+  );
+  ipcRenderer.send(IpcEventKeys.ExportOverlay);
+};
+
+window.importOverlays = (exportedOverlays: ExportedOverlays) => {
+  ipcRenderer.send(IpcEventKeys.ImportOverlay, exportedOverlays);
 };
