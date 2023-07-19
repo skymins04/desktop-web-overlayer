@@ -75,10 +75,10 @@ pnpm --filter @desktop-web-overlayer/view {commands}
 <p align="center">
   <img src="assets/readme-5.png" style="width: 400px; margin: 0 auto;" />
 </p>
-<p>
-  <img src="assets/readme-7.png" style="width: 33%;" />
-  <img src="assets/readme-8.png" style="width: 33%;" />
-  <img src="assets/readme-9.png" style="width: 33%;" />
+<p align="center">
+  <img src="assets/readme-7.png" style="width: 30%;" />
+  <img src="assets/readme-8.png" style="width: 30%;" />
+  <img src="assets/readme-9.png" style="width: 30%;" />
 <p>
 <img src="assets/readme-2.png" />
 <img src="assets/readme-6.png" />
