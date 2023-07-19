@@ -6,6 +6,15 @@
 
 ![readme-1](assets/readme-1.png)
 
+## Download
+
+```sh
+git clone https://github.com/skymins04/desktop-web-overlayer
+```
+
+또는
+[GitHub Release 최신버전 다운로드 링크](https://github.com/skymins04/desktop-web-overlayer/releases/latest)
+
 ## Commands
 
 ```sh
@@ -17,6 +26,9 @@ pnpm dev
 
 # 빌드
 pnpm build
+
+# 빌드 (캐시 무시)
+pnpm build --force
 
 # 프로덕션 환경 실행 (빌드를 우선 실행 해야함)
 pnpm start
@@ -36,9 +48,21 @@ pnpm --filter @desktop-web-overlayer/electron {commands}
 pnpm --filter @desktop-web-overlayer/view {commands}
 ```
 
+## Tech Stack
+
+| 분류                       | 적용기술                                    |
+| -------------------------- | ------------------------------------------- |
+| **Package manager**        | pnpm (pnpm workspace monorepo)              |
+| **Parallel execution**     | Ultra runner                                |
+| **Framework / UI Library** | Electron + React                            |
+| **Bundler**                | Vite                                        |
+| **Styling**                | Tailwind CSS + Mantine                      |
+| **Validation**             | react-hook-form + zod + @hookform/resolvers |
+
 ## Features
 
 - 데스크탑 화면에 여러 웹페이지를 오버레이 위젯으로 배치할 수 있는 기능
+- 시스템트레이 빠른메뉴 제공
 - 오버레이 위젯 세부 기능
   - 오버레이 창 위치/크기 저장 기능
   - 오버레이 창 외곽선 표시/숨김 기능
@@ -49,23 +73,25 @@ pnpm --filter @desktop-web-overlayer/view {commands}
   - 오버레이 폰트 크기 조절 기능
 
 <p align="center">
-  <img src="assets/readme-5.png" width="300px"/>
+  <img src="assets/readme-5.png" style="width: 400px; margin: 0 auto;" />
 </p>
+<p>
+  <img src="assets/readme-7.png" style="width: 33%;" />
+  <img src="assets/readme-8.png" style="width: 33%;" />
+  <img src="assets/readme-9.png" style="width: 33%;" />
+<p>
+<img src="assets/readme-2.png" />
+<img src="assets/readme-6.png" />
+<img src="assets/readme-3.png" />
+<img src="assets/readme-4.png" />
 
-![readme-2](assets/readme-2.png)
-![readme-3](assets/readme-3.png)
-![readme-4](assets/readme-4.png)
+## Known Issues
 
-## Tech Stack
-
-| 분류                       | 적용기술                                    |
-| -------------------------- | ------------------------------------------- |
-| **Package manager**        | pnpm                                        |
-| **Parallel execution**     | Ultra runner                                |
-| **Framework / UI Library** | Electron + React                            |
-| **Bundler**                | Vite                                        |
-| **Styling**                | Tailwind CSS + Mantine                      |
-| **Validation**             | react-hook-form + zod + @hookform/resolvers |
+- Mac dmg 인증서 문제
+  - 현재 Mac용 dmg 파일들을 직접 브라우저를 통해 다운로드 받으면 MacOS 상에서 인증서가 적용되지 않은 이미지라는 이유로 실행을 시키지 않음.
+  - **"curl -LO {dmg file url}"** 이 명령어를 통해 dmg 파일을 다운로드 받아야 정상적으로 실행이 가능함.
+  - 1.0.2 dmg download ex:
+    - curl -LO https://github.com/skymins04/desktop-web-overlayer/releases/download/1.0.2/Desktop-Web-Overlayer-1.0.2-arm64.dmg
 
 ## License
 
