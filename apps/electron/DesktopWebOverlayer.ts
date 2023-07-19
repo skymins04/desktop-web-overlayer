@@ -26,13 +26,25 @@ import {
   DesktopWebOverlayerSettingsHTMLPath,
   DesktopWebOverlayerPreloadJsPath,
   IpcEventKeys,
+  DesktopWebOverlayerCheckUpdateHTMLPath,
 } from "./constants";
 import { uuid } from "uuidv4";
+import { autoUpdater } from "electron-updater";
 
 export class DesktopWebOverlayer {
   constructor() {
     app.on("ready", () => {
-      this.init();
+      autoUpdater.on("update-downloaded", () => {
+        setTimeout(() => {
+          autoUpdater.quitAndInstall();
+          app.exit();
+        }, 1000);
+      });
+      this.openCheckUpdateWindow();
+      autoUpdater.checkForUpdates().then(() => {
+        this.closeCheckUpdateWindow();
+        this.init();
+      });
     });
     app.on("window-all-closed", () => {});
   }
@@ -41,6 +53,7 @@ export class DesktopWebOverlayer {
    * System Objects
    *************************************************************/
 
+  private checkUpdateWindow: BrowserWindow | null = null;
   private settingsWindow: BrowserWindow | null = null;
   private overlayWindows: Record<string, BrowserWindow> = {};
   private overlayWindowStates: Record<string, State> = {};
@@ -348,6 +361,27 @@ export class DesktopWebOverlayer {
   /*************************************************************
    * Window Opener/Closer
    *************************************************************/
+
+  private openCheckUpdateWindow() {
+    this.checkUpdateWindow = new BrowserWindow({
+      width: 300,
+      height: 300,
+      center: true,
+      alwaysOnTop: true,
+      title: "업데이트 확인",
+      frame: false,
+      webPreferences: {
+        webSecurity: true,
+        nodeIntegration: true,
+        contextIsolation: false,
+      },
+    });
+    this.checkUpdateWindow.loadFile(DesktopWebOverlayerCheckUpdateHTMLPath);
+  }
+
+  private closeCheckUpdateWindow() {
+    this.checkUpdateWindow?.close();
+  }
 
   private openSettingsWindow(menu?: string) {
     this.settingsWindow = new BrowserWindow({

@@ -18,6 +18,10 @@ export const DesktopWebOverlayerViewDirPath = process.env.DEBUG
  * Page Routing Path
  */
 
+export const DesktopWebOverlayerCheckUpdateHTMLPath = path.join(
+  DesktopWebOverlayerRootDirPath,
+  "checkUpdate.html"
+);
 export const DesktopWebOverlayerIndexHTMLPath = path.join(
   DesktopWebOverlayerViewDirPath,
   "overlay"
