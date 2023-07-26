@@ -1,29 +1,8 @@
-export type WindowBooleans = Record<string, boolean>;
-export type Overlay = {
-  title: string;
-  url: string;
-  customTheme?: string;
-  opacity: number;
-  fontSize: number;
-  isEnableFontSize: boolean;
-};
-export type Overlays = Record<string, Overlay>;
-export type ExportedOverlay = {
-  overlayPosition: WindowPosition;
-  overlaySize: WindowSize;
-  isIgnoreOverlayWindowMouseEvent: boolean;
-  isEnableOverlayWindowMove: boolean;
-  isShowOverlayWindowBorder: boolean;
-} & Overlay;
-export type ExportedOverlays = {
-  overlays: Record<string, ExportedOverlay>;
-  activeOverlayIds: string[];
-};
+import { Overlay, Overlays, WindowBooleans } from "@modules";
 
 declare global {
   interface Window {
     addWebOverlay: (overlay: Overlay) => void;
-    updateWindowPosAndSize: () => void;
     addGetOverlayListListener: (
       cb: (
         overlays: Overlays,
@@ -72,6 +51,7 @@ declare global {
       filePath?: string
     ) => void;
     deleteSettingHistory: (index: number) => void;
+    updateWindowPosAndSize: () => void;
     urlId: string;
     title: string;
     url: string;

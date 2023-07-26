@@ -5,6 +5,8 @@ import {
   Close,
   Edit,
   EditOutlined,
+  FileDownloadOutlined,
+  FileUploadOutlined,
   FormatListNumbered,
 } from "@mui/icons-material";
 import { useSearchParams } from "react-router-dom";
@@ -33,6 +35,18 @@ export const SettingsSideArea = () => {
         onClick={() => setSearchParams({ menu: "editOverlay" })}
       >
         웹 오버레이 수정
+      </SideBarButton>
+      <SideBarButton
+        icon={<FileUploadOutlined />}
+        onClick={() => setSearchParams({ menu: "exportSettings" })}
+      >
+        설정 내보내기
+      </SideBarButton>
+      <SideBarButton
+        icon={<FileDownloadOutlined />}
+        onClick={() => setSearchParams({ menu: "importSettings" })}
+      >
+        설정 가져오기
       </SideBarButton>
       <Divider />
       <SideBarButton icon={<Close />} onClick={() => window.close()}>

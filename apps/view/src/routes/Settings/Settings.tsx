@@ -2,9 +2,14 @@ import { BaseLayout } from "@/components";
 import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SETTINGS_MENU_TITLE, SettingsMenus } from "@/constants/settingsMenu";
-import { AddOverlaySettingBlock, OverlayListSettingBlock } from "./components";
-import { SettingsSideArea } from "./components/SettingsSideArea";
-import { EditOverlaySettingBlock } from "./components/EditOverlaySettingBlock";
+import {
+  AddOverlaySettingBlock,
+  OverlayListSettingBlock,
+  SettingsSideArea,
+  EditOverlaySettingBlock,
+  ExportSettingsSettingBlock,
+  ImportSettingsSettingBlock,
+} from "./components";
 
 export const Settings = () => {
   const [searchParams] = useSearchParams();
@@ -21,6 +26,8 @@ export const Settings = () => {
       <OverlayListSettingBlock />
       <AddOverlaySettingBlock />
       <EditOverlaySettingBlock />
+      <ExportSettingsSettingBlock />
+      <ImportSettingsSettingBlock />
     </BaseLayout>
   );
 };

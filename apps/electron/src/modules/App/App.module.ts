@@ -1,3 +1,5 @@
+import { join } from "path";
+import { readFileSync, writeFileSync } from "fs";
 import {
   BrowserWindow,
   Menu,
@@ -6,19 +8,12 @@ import {
   nativeImage,
   ipcMain,
   WebContents,
+  dialog,
 } from "electron";
+import { autoUpdater } from "electron-updater";
 import electronWindowState, { State } from "electron-window-state";
-import {
-  WindowBooleans,
-  WindowPositions,
-  WindowSizes,
-  getStorageValue,
-  setStorageValue,
-  Overlay,
-  Overlays,
-  ExportedOverlay,
-  ExportedOverlays,
-} from "./utils";
+import { uuid } from "uuidv4";
+import donwloadFolder from "downloads-folder";
 import {
   DesktopWebOverlayerIndexHTMLPath,
   logoImagePath,
@@ -26,16 +21,24 @@ import {
   titleVersion,
   DesktopWebOverlayerSettingsAddOverlayHTMLPath,
   DesktopWebOverlayerSettingsHTMLPath,
-  DesktopWebOverlayerPreloadJsPath,
   IpcEventKeys,
   DesktopWebOverlayerCheckUpdateHTMLPath,
-} from "./constants";
-import { uuid } from "uuidv4";
-import { autoUpdater } from "electron-updater";
-import { ExportedOverlaysValidationSchema } from "./utils/validators";
+  DesktopWebOverlayerPreloadSettingsWindowJsPath,
+  DesktopWebOverlayerPreloadOverlayWindowJsPath,
+} from "@constants";
+import { ExportedOverlaysValidationSchema } from "@utils";
+import {
+  StoreModule,
+  Overlay,
+  Overlays,
+  ExportedOverlays,
+  WindowPositions,
+  WindowSizes,
+  WindowBooleans,
+} from "@modules";
 
-export class DesktopWebOverlayer {
-  constructor() {
+export class AppModule {
+  constructor(private readonly store: StoreModule) {
     app.on("ready", () => {
       autoUpdater.on("update-downloaded", () => {
         setTimeout(() => {
@@ -63,58 +66,13 @@ export class DesktopWebOverlayer {
   private tray: Tray | null = null;
 
   /*************************************************************
-   * Storage Values
-   *************************************************************/
-
-  private overlays: Overlays = {};
-  private activeOverlayIds: string[] = [];
-  private overlayWindowSizes: WindowSizes = {};
-  private overlayWindowPositions: WindowPositions = {};
-  private isIgnoreOverlayWindowMouseEvents: WindowBooleans = {};
-  private isEnableOverlayWindowMoves: WindowBooleans = {};
-  private isShowOverlayWindowBorders: WindowBooleans = {};
-
-  /*************************************************************
    * Initializers
    *************************************************************/
 
   private init() {
-    this.initValues();
     this.initIpcListeners();
     this.initWindows();
     this.initTray();
-  }
-
-  private initValues() {
-    const overlays = getStorageValue("overlays");
-    this.updateOverlays(typeof overlays === "object" ? overlays : {});
-    const overlayPositions = getStorageValue("overlayPositions");
-    this.overlayWindowPositions =
-      typeof overlayPositions === "object" ? overlayPositions : {};
-    const overlaySizes = getStorageValue("overlaySizes");
-    this.overlayWindowSizes =
-      typeof overlaySizes === "object" ? overlaySizes : {};
-    const isIgnoreOverlayWindowMouseEvents = getStorageValue(
-      "isIgnoreOverlayWindowMouseEvents"
-    );
-    this.isIgnoreOverlayWindowMouseEvents =
-      typeof isIgnoreOverlayWindowMouseEvents === "object"
-        ? isIgnoreOverlayWindowMouseEvents
-        : {};
-    const isEnableOverlayWindowMoves = getStorageValue(
-      "isEnableOverlayWindowMoves"
-    );
-    this.isEnableOverlayWindowMoves =
-      typeof isEnableOverlayWindowMoves === "object"
-        ? isEnableOverlayWindowMoves
-        : {};
-    const isShowOverlayWindowBorders = getStorageValue(
-      "isShowOverlayWindowBorders"
-    );
-    this.isShowOverlayWindowBorders =
-      typeof isShowOverlayWindowBorders === "object"
-        ? isShowOverlayWindowBorders
-        : {};
   }
 
   private initIpcListeners() {
@@ -171,7 +129,7 @@ export class DesktopWebOverlayer {
       (e, overlayId: string) => {
         this.setIgnoreOverlayWindowMouseEvent(
           overlayId,
-          !this.isIgnoreOverlayWindowMouseEvents[overlayId]
+          !this.store.isIgnoreOverlayWindowMouseEvents[overlayId]
         );
         this.sendOverlayInfoToOverlayWindow(e.sender);
         this.updateTrayContextMenu();
@@ -180,7 +138,7 @@ export class DesktopWebOverlayer {
     ipcMain.on(IpcEventKeys.EnableMoveWebOverlay, (e, overlayId: string) => {
       this.setEnableMoveOverlayWindowEvent(
         overlayId,
-        !this.isEnableOverlayWindowMoves[overlayId]
+        !this.store.isEnableOverlayWindowMoves[overlayId]
       );
       this.sendOverlayInfoToOverlayWindow(e.sender);
       this.updateTrayContextMenu();
@@ -188,90 +146,189 @@ export class DesktopWebOverlayer {
     ipcMain.on(IpcEventKeys.ShowBorderWebOverlay, (e, overlayId: string) => {
       this.setShowOverlayWindowBorder(
         overlayId,
-        !this.isShowOverlayWindowBorders[overlayId]
+        !this.store.isShowOverlayWindowBorders[overlayId]
       );
       this.sendOverlayInfoToOverlayWindow(e.sender);
       this.updateTrayContextMenu();
     });
     ipcMain.on(
       IpcEventKeys.ImportOverlay,
-      (e, exportedOverlays: ExportedOverlays) => {
-        try {
-          ExportedOverlaysValidationSchema.parse(exportedOverlays);
-          const { overlays, activeOverlayIds } = exportedOverlays;
-          this.overlayWindowPositions = {};
-          this.overlayWindowSizes = {};
-          this.isIgnoreOverlayWindowMouseEvents = {};
-          this.isEnableOverlayWindowMoves = {};
-          this.isShowOverlayWindowBorders = {};
-          this.overlays = {};
-          this.setActiveOverlayIds(activeOverlayIds);
-          for (const [
-            overlayId,
-            {
-              overlayPosition,
-              overlaySize,
-              isIgnoreOverlayWindowMouseEvent,
-              isEnableOverlayWindowMove,
-              isShowOverlayWindowBorder,
-              ...overlay
-            },
-          ] of Object.entries(overlays)) {
-            this.overlayWindowPositions[overlayId] = overlayPosition;
-            this.overlayWindowSizes[overlayId] = overlaySize;
-            this.isIgnoreOverlayWindowMouseEvents[overlayId] =
-              isIgnoreOverlayWindowMouseEvent;
-            this.isEnableOverlayWindowMoves[overlayId] =
-              isEnableOverlayWindowMove;
-            this.isShowOverlayWindowBorders[overlayId] =
-              isShowOverlayWindowBorder;
-            this.overlays[overlayId] = overlay;
+      async (e, exportedFilePath?: string) => {
+        const sendImportOverlayResult = (
+          result: "success" | "fail" | "cancel"
+        ) => e.sender.send(IpcEventKeys.ImportOverlay, result);
+
+        if (this.settingsWindow) {
+          const filePath =
+            exportedFilePath ??
+            (await dialog
+              .showOpenDialog(this.settingsWindow, {
+                title: "설정파일 가져오기",
+                properties: ["openFile"],
+              })
+              .then(({ filePaths }) => {
+                const [filePath] = filePaths;
+                if (filePath) {
+                  return filePath;
+                } else {
+                  sendImportOverlayResult("cancel");
+                  return null;
+                }
+              })
+              .catch(() => {
+                sendImportOverlayResult("fail");
+                return null;
+              }));
+
+          if (filePath) {
+            try {
+              const exportedOverlays: ExportedOverlays = JSON.parse(
+                readFileSync(filePath).toString()
+              );
+              ExportedOverlaysValidationSchema.parse(exportedOverlays);
+              for (const [overlayId, overlayWindow] of Object.entries(
+                this.overlayWindows
+              )) {
+                overlayWindow.close();
+                delete this.overlayWindows[overlayId];
+              }
+              const { overlays, activeOverlayIds } = exportedOverlays;
+              const newOverlayWindowPositions: WindowPositions = {};
+              const newOverlayWindowSizes: WindowSizes = {};
+              const newIsIgnoreOverlayWindowMouseEvents: WindowBooleans = {};
+              const newIsEnableOverlayWindowMoves: WindowBooleans = {};
+              const newIsShowOverlayWindowBorders: WindowBooleans = {};
+              const newOverlays: Overlays = {};
+
+              for (const [
+                overlayId,
+                {
+                  overlayPosition,
+                  overlaySize,
+                  isIgnoreOverlayWindowMouseEvent,
+                  isEnableOverlayWindowMove,
+                  isShowOverlayWindowBorder,
+                  ...overlay
+                },
+              ] of Object.entries(overlays)) {
+                newOverlayWindowPositions[overlayId] = overlayPosition;
+                newOverlayWindowSizes[overlayId] = overlaySize;
+                newIsIgnoreOverlayWindowMouseEvents[overlayId] =
+                  isIgnoreOverlayWindowMouseEvent ?? false;
+                newIsEnableOverlayWindowMoves[overlayId] =
+                  isEnableOverlayWindowMove ?? true;
+                newIsShowOverlayWindowBorders[overlayId] =
+                  isShowOverlayWindowBorder ?? true;
+                newOverlays[overlayId] = overlay;
+              }
+
+              this.store.overlayWindowPositions = newOverlayWindowPositions;
+              this.store.overlayWindowSizes = newOverlayWindowSizes;
+              this.store.isIgnoreOverlayWindowMouseEvents =
+                newIsIgnoreOverlayWindowMouseEvents;
+              this.store.isEnableOverlayWindowMoves =
+                newIsEnableOverlayWindowMoves;
+              this.store.isShowOverlayWindowBorders =
+                newIsShowOverlayWindowBorders;
+              this.store.overlays = newOverlays;
+              this.store.activeOverlayIds = activeOverlayIds;
+
+              if (!this.store.settingFileHistory.includes(filePath)) {
+                this.store.settingFileHistory = [
+                  ...this.store.settingFileHistory,
+                  filePath,
+                ];
+              }
+
+              this.openActiveOverlayWindows();
+              this.sendOverlayInfoToOverlayWindow(e.sender);
+              sendImportOverlayResult("success");
+            } catch (e) {
+              sendImportOverlayResult("fail");
+            }
           }
-          setStorageValue("overlayPositions", this.overlayWindowPositions);
-          setStorageValue("overlaySizes", this.overlayWindowSizes);
-          setStorageValue(
-            "isIgnoreOverlayWindowMouseEvents",
-            this.isIgnoreOverlayWindowMouseEvents
-          );
-          setStorageValue(
-            "isEnableOverlayWindowMoves",
-            this.isEnableOverlayWindowMoves
-          );
-          setStorageValue(
-            "isShowOverlayWindowBorders",
-            this.isShowOverlayWindowBorders
-          );
-          setStorageValue("overlays", this.overlays);
-          setTimeout(() => {
-            app.relaunch();
-          }, 100);
-        } catch (e) {}
+        } else {
+          sendImportOverlayResult("cancel");
+        }
       }
     );
     ipcMain.on(IpcEventKeys.ExportOverlay, (e) => {
-      const exportedOverlays: ExportedOverlays = {
-        overlays: {},
-        activeOverlayIds: this.activeOverlayIds,
-      };
-      for (const [overlayId, overlay] of Object.entries(this.overlays)) {
-        exportedOverlays.overlays[overlayId] = {
-          ...overlay,
-          overlayPosition: this.overlayWindowPositions[overlayId],
-          overlaySize: this.overlayWindowSizes[overlayId],
-          isIgnoreOverlayWindowMouseEvent:
-            this.isIgnoreOverlayWindowMouseEvents[overlayId],
-          isEnableOverlayWindowMove: this.isEnableOverlayWindowMoves[overlayId],
-          isShowOverlayWindowBorder: this.isShowOverlayWindowBorders[overlayId],
+      const sendExportOverlayResult = (result: "success" | "fail" | "cancel") =>
+        e.sender.send(IpcEventKeys.ExportOverlay, result);
+
+      if (this.settingsWindow) {
+        const exportedOverlays: ExportedOverlays = {
+          overlays: {},
+          activeOverlayIds: this.store.activeOverlayIds,
         };
+        for (const [overlayId, overlay] of Object.entries(
+          this.store.overlays
+        )) {
+          exportedOverlays.overlays[overlayId] = {
+            ...overlay,
+            overlayPosition: this.store.overlayWindowPositions[overlayId],
+            overlaySize: this.store.overlayWindowSizes[overlayId],
+            isIgnoreOverlayWindowMouseEvent:
+              this.store.isIgnoreOverlayWindowMouseEvents[overlayId],
+            isEnableOverlayWindowMove:
+              this.store.isEnableOverlayWindowMoves[overlayId],
+            isShowOverlayWindowBorder:
+              this.store.isShowOverlayWindowBorders[overlayId],
+          };
+        }
+        const date = new Date();
+        dialog
+          .showSaveDialog(this.settingsWindow, {
+            title: "설정파일 내보내기",
+            defaultPath: join(
+              donwloadFolder(),
+              `desktop-web-overlayer_${date.getFullYear()}-${(
+                date.getMonth() + 1
+              )
+                .toString()
+                .padStart(2, "0")}-${date
+                .getDate()
+                .toString()
+                .padStart(2, "0")}.json`
+            ),
+            buttonLabel: "저장",
+          })
+          .then(({ filePath }) => {
+            if (filePath) {
+              writeFileSync(filePath, JSON.stringify(exportedOverlays));
+              if (!this.store.settingFileHistory.includes(filePath)) {
+                this.store.settingFileHistory = [
+                  ...this.store.settingFileHistory,
+                  filePath,
+                ];
+              }
+
+              this.sendOverlayInfoToOverlayWindow(e.sender);
+              sendExportOverlayResult("success");
+            } else {
+              sendExportOverlayResult("cancel");
+            }
+          })
+          .catch(() => {
+            sendExportOverlayResult("fail");
+          });
       }
-      e.sender.send(IpcEventKeys.ExportOverlay, exportedOverlays);
+    });
+    ipcMain.on(IpcEventKeys.DeleteSettingHistory, (e, index: number) => {
+      const length = this.store.settingFileHistory.length;
+      if (length > index && index >= 0) {
+        const newHistory = [...this.store.settingFileHistory];
+        newHistory.splice(index, 1);
+        this.store.settingFileHistory = newHistory;
+        this.sendOverlayInfoToOverlayWindow(e.sender);
+      }
     });
   }
 
   private initWindows() {
     if (
-      this.activeOverlayIds.length === 0 &&
-      Object.keys(this.overlays).length === 0
+      this.store.activeOverlayIds.length === 0 &&
+      Object.keys(this.store.overlays).length === 0
     ) {
       this.openSettingsWindow("addOverlay");
     } else {
@@ -290,12 +347,12 @@ export class DesktopWebOverlayer {
    * Updaters
    *************************************************************/
 
-  private updateOverlays(overlays: Overlays) {
-    this.overlays = overlays;
-    const activeOverlayIds = getStorageValue("activeOverlayIds");
-    this.activeOverlayIds = (
-      Array.isArray(activeOverlayIds) ? activeOverlayIds : []
-    ).filter((activeOverlayId) => !!this.overlays[activeOverlayId]);
+  private updateActiveOverlays() {
+    this.store.activeOverlayIds = (
+      Array.isArray(this.store.activeOverlayIds)
+        ? this.store.activeOverlayIds
+        : []
+    ).filter((activeOverlayId) => !!this.store.overlays[activeOverlayId]);
   }
 
   private updateWindowState = (overlayId: string) => {
@@ -310,15 +367,19 @@ export class DesktopWebOverlayer {
       x: overlayWindowState.x,
       y: overlayWindowState.y,
     };
-    this.overlayWindowPositions[overlayId] = overlayWindowPosition;
-    setStorageValue("overlayPositions", this.overlayWindowPositions);
+    this.store.overlayWindowPositions = {
+      ...this.store.overlayWindowPositions,
+      [overlayId]: overlayWindowPosition,
+    };
   }
 
   private updateWindowSize(overlayId: string, overlayWindow: BrowserWindow) {
     const size = overlayWindow.getSize();
     const overlayWindowSize = { width: size[0], height: size[1] };
-    this.overlayWindowSizes[overlayId] = overlayWindowSize;
-    setStorageValue("overlaySizes", this.overlayWindowSizes);
+    this.store.overlayWindowSizes = {
+      ...this.store.overlayWindowSizes,
+      [overlayId]: overlayWindowSize,
+    };
   }
 
   private updateTrayContextMenu() {
@@ -328,10 +389,12 @@ export class DesktopWebOverlayer {
       {
         label: "마우스 클릭 통과",
         type: "submenu",
-        submenu: Object.entries(this.isIgnoreOverlayWindowMouseEvents)
-          .filter(([overlayId, _]) => this.activeOverlayIds.includes(overlayId))
+        submenu: Object.entries(this.store.isIgnoreOverlayWindowMouseEvents)
+          .filter(([overlayId, _]) =>
+            this.store.activeOverlayIds.includes(overlayId)
+          )
           .map(([overlayId, value]) => ({
-            label: this.overlays[overlayId].title,
+            label: this.store.overlays[overlayId].title,
             type: "checkbox",
             checked: value,
             click: () => {
@@ -343,10 +406,12 @@ export class DesktopWebOverlayer {
       {
         label: "프레임 상단 핸들 보기",
         type: "submenu",
-        submenu: Object.entries(this.isEnableOverlayWindowMoves)
-          .filter(([overlayId, _]) => this.activeOverlayIds.includes(overlayId))
+        submenu: Object.entries(this.store.isEnableOverlayWindowMoves)
+          .filter(([overlayId, _]) =>
+            this.store.activeOverlayIds.includes(overlayId)
+          )
           .map(([overlayId, value]) => ({
-            label: this.overlays[overlayId].title,
+            label: this.store.overlays[overlayId].title,
             type: "checkbox",
             checked: value,
             click: () => {
@@ -358,10 +423,12 @@ export class DesktopWebOverlayer {
       {
         label: "오버레이 외곽선 보기",
         type: "submenu",
-        submenu: Object.entries(this.isShowOverlayWindowBorders)
-          .filter(([overlayId, _]) => this.activeOverlayIds.includes(overlayId))
+        submenu: Object.entries(this.store.isShowOverlayWindowBorders)
+          .filter(([overlayId, _]) =>
+            this.store.activeOverlayIds.includes(overlayId)
+          )
           .map(([overlayId, value]) => ({
-            label: this.overlays[overlayId].title,
+            label: this.store.overlays[overlayId].title,
             type: "checkbox",
             checked: value,
             click: () => {
@@ -373,8 +440,8 @@ export class DesktopWebOverlayer {
       {
         label: "오버레이 새로고침",
         type: "submenu",
-        submenu: this.activeOverlayIds.map((overlayId) => ({
-          label: this.overlays[overlayId].title,
+        submenu: this.store.activeOverlayIds.map((overlayId) => ({
+          label: this.store.overlays[overlayId].title,
           type: "normal",
           click: () => this.reloadOverlayWindow(overlayId),
         })),
@@ -383,8 +450,8 @@ export class DesktopWebOverlayer {
       {
         label: "웹페이지 열기/닫기",
         type: "submenu",
-        submenu: Object.entries(this.overlays).map(([key, url]) => {
-          const isActive = this.activeOverlayIds.includes(key);
+        submenu: Object.entries(this.store.overlays).map(([key, url]) => {
+          const isActive = this.store.activeOverlayIds.includes(key);
           return {
             label: url.title,
             type: "checkbox",
@@ -415,8 +482,8 @@ export class DesktopWebOverlayer {
       {
         label: "개발자도구 열기",
         type: "submenu",
-        submenu: this.activeOverlayIds.map((overlayId) => ({
-          label: this.overlays[overlayId].title,
+        submenu: this.store.activeOverlayIds.map((overlayId) => ({
+          label: this.store.overlays[overlayId].title,
           type: "normal",
           click: () =>
             this.overlayWindows[overlayId].webContents.openDevTools({
@@ -460,7 +527,9 @@ export class DesktopWebOverlayer {
   }
 
   private openSettingsWindow(menu?: string) {
+    if (this.settingsWindow) return;
     this.settingsWindow = new BrowserWindow({
+      width: 800,
       center: true,
       alwaysOnTop: true,
       title: "설정",
@@ -468,7 +537,7 @@ export class DesktopWebOverlayer {
         webSecurity: true,
         nodeIntegration: true,
         contextIsolation: false,
-        preload: DesktopWebOverlayerPreloadJsPath,
+        preload: DesktopWebOverlayerPreloadSettingsWindowJsPath,
       },
     });
     this.ignoreXFrameOptionsHeader(this.settingsWindow);
@@ -489,18 +558,20 @@ export class DesktopWebOverlayer {
   }
 
   private openOverlayWindow(overlayId: string) {
-    const overlay = this.overlays[overlayId];
+    const overlay = this.store.overlays[overlayId];
     if (overlay) {
       const windowState = electronWindowState({
         defaultWidth: 500,
         defaultHeight: 500,
       });
       const overlayWindow = new BrowserWindow({
-        width: this.overlayWindowSizes[overlayId]?.width || windowState.width,
+        width:
+          this.store.overlayWindowSizes[overlayId]?.width || windowState.width,
         height:
-          this.overlayWindowSizes[overlayId]?.height || windowState.height,
-        x: this.overlayWindowPositions[overlayId]?.x || windowState.x,
-        y: this.overlayWindowPositions[overlayId]?.y || windowState.y,
+          this.store.overlayWindowSizes[overlayId]?.height ||
+          windowState.height,
+        x: this.store.overlayWindowPositions[overlayId]?.x || windowState.x,
+        y: this.store.overlayWindowPositions[overlayId]?.y || windowState.y,
         transparent: true,
         frame: false,
         alwaysOnTop: true,
@@ -510,18 +581,18 @@ export class DesktopWebOverlayer {
           webSecurity: true,
           nodeIntegration: true,
           contextIsolation: false,
-          preload: DesktopWebOverlayerPreloadJsPath,
+          preload: DesktopWebOverlayerPreloadOverlayWindowJsPath,
         },
       });
       this.ignoreXFrameOptionsHeader(overlayWindow);
       this.setWindowLangaugeToKR(overlayWindow);
 
-      if (this.isIgnoreOverlayWindowMouseEvents[overlayId] === undefined)
-        this.isIgnoreOverlayWindowMouseEvents[overlayId] = false;
-      if (this.isEnableOverlayWindowMoves[overlayId] === undefined)
-        this.isEnableOverlayWindowMoves[overlayId] = true;
-      if (this.isShowOverlayWindowBorders[overlayId] === undefined)
-        this.isShowOverlayWindowBorders[overlayId] = true;
+      if (this.store.isIgnoreOverlayWindowMouseEvents[overlayId] === undefined)
+        this.store.isIgnoreOverlayWindowMouseEvents[overlayId] = false;
+      if (this.store.isEnableOverlayWindowMoves[overlayId] === undefined)
+        this.store.isEnableOverlayWindowMoves[overlayId] = true;
+      if (this.store.isShowOverlayWindowBorders[overlayId] === undefined)
+        this.store.isShowOverlayWindowBorders[overlayId] = true;
 
       overlayWindow.loadURL(DesktopWebOverlayerIndexHTMLPath);
 
@@ -538,15 +609,15 @@ export class DesktopWebOverlayer {
 
         this.setIgnoreOverlayWindowMouseEvent(
           overlayId,
-          this.isIgnoreOverlayWindowMouseEvents[overlayId]
+          this.store.isIgnoreOverlayWindowMouseEvents[overlayId]
         );
         this.setEnableMoveOverlayWindowEvent(
           overlayId,
-          this.isEnableOverlayWindowMoves[overlayId]
+          this.store.isEnableOverlayWindowMoves[overlayId]
         );
         this.setShowOverlayWindowBorder(
           overlayId,
-          this.isShowOverlayWindowBorders[overlayId]
+          this.store.isShowOverlayWindowBorders[overlayId]
         );
         this.initOverlayWindow(overlayId, overlay.url, overlay.title);
         this.setOverlayWindowIframeSrc(overlayId, overlay.url);
@@ -554,6 +625,7 @@ export class DesktopWebOverlayer {
       });
       overlayWindow.on("close", () => {
         this.removeActiveOverlayId(overlayId);
+        delete this.overlayWindows[overlayId];
         this.updateTrayContextMenu();
         if (this.settingsWindow) {
           this.sendOverlayInfoToOverlayWindow(this.settingsWindow.webContents);
@@ -578,7 +650,7 @@ export class DesktopWebOverlayer {
   }
 
   private openActiveOverlayWindows() {
-    for (const overlayId of this.activeOverlayIds) {
+    for (const overlayId of this.store.activeOverlayIds) {
       this.openOverlayWindow(overlayId);
     }
   }
@@ -674,56 +746,42 @@ export class DesktopWebOverlayer {
    *************************************************************/
 
   private addOverlay = (overlay: Overlay) => {
-    const newOverlays = { ...this.overlays };
-    newOverlays[uuid()] = overlay;
-
-    setStorageValue("overlays", newOverlays);
-    this.updateOverlays(newOverlays);
+    this.store.overlays = { ...this.store.overlays, [uuid()]: overlay };
   };
 
   private removeOverlay = (overlayId: string) => {
-    if (this.overlays[overlayId]) {
-      const newOverlays = { ...this.overlays };
+    if (this.store.overlays[overlayId]) {
+      const newOverlays = { ...this.store.overlays };
       delete newOverlays[overlayId];
 
-      setStorageValue("overlays", newOverlays);
-      this.updateOverlays(newOverlays);
+      this.store.overlays = newOverlays;
+      this.updateActiveOverlays();
 
       const overlayWindow = this.overlayWindows[overlayId];
       if (overlayWindow) {
         overlayWindow.close();
+        delete this.overlayWindows[overlayId];
       }
     }
   };
 
   private editOverlay = (overlayId: string, overlay: Overlay) => {
-    if (this.overlays[overlayId]) {
-      const newOverlays = { ...this.overlays };
-      newOverlays[overlayId] = overlay;
-
-      setStorageValue("overlays", newOverlays);
-      this.updateOverlays(newOverlays);
+    if (this.store.overlays[overlayId]) {
+      this.store.overlays = { ...this.store.overlays, [overlayId]: overlay };
       this.reloadOverlayWindow(overlayId);
     }
   };
 
-  private setActiveOverlayIds(activeOverlayIds: string[]) {
-    this.activeOverlayIds = activeOverlayIds;
-    setStorageValue("activeOverlayIds", this.activeOverlayIds);
-  }
-
   private addActiveOverlayId(overlayId: string) {
-    if (!this.activeOverlayIds.includes(overlayId)) {
-      this.activeOverlayIds.push(overlayId);
-      setStorageValue("activeOverlayIds", this.activeOverlayIds);
+    if (!this.store.activeOverlayIds.includes(overlayId)) {
+      this.store.activeOverlayIds = [...this.store.activeOverlayIds, overlayId];
     }
   }
 
   private removeActiveOverlayId(overlayId: string) {
-    this.activeOverlayIds = this.activeOverlayIds.filter(
+    this.store.activeOverlayIds = this.store.activeOverlayIds.filter(
       (id) => id !== overlayId
     );
-    setStorageValue("activeOverlayIds", this.activeOverlayIds);
   }
 
   private setIgnoreOverlayWindowMouseEvent(overlayId: string, state: boolean) {
@@ -732,11 +790,7 @@ export class DesktopWebOverlayer {
       IpcEventKeys.IgnoreMouseEventWebOverlay,
       state
     );
-    this.isIgnoreOverlayWindowMouseEvents[overlayId] = state;
-    setStorageValue(
-      "isIgnoreOverlayWindowMouseEvents",
-      this.isIgnoreOverlayWindowMouseEvents
-    );
+    this.store.isIgnoreOverlayWindowMouseEvents[overlayId] = state;
   }
 
   private setEnableMoveOverlayWindowEvent(overlayId: string, state: boolean) {
@@ -744,11 +798,7 @@ export class DesktopWebOverlayer {
       IpcEventKeys.EnableMoveWebOverlay,
       state
     );
-    this.isEnableOverlayWindowMoves[overlayId] = state;
-    setStorageValue(
-      "isEnableOverlayWindowMoves",
-      this.isEnableOverlayWindowMoves
-    );
+    this.store.isEnableOverlayWindowMoves[overlayId] = state;
   }
 
   private setShowOverlayWindowBorder(overlayId: string, state: boolean) {
@@ -756,11 +806,7 @@ export class DesktopWebOverlayer {
       IpcEventKeys.ShowBorderWebOverlay,
       state
     );
-    this.isShowOverlayWindowBorders[overlayId] = state;
-    setStorageValue(
-      "isShowOverlayWindowBorders",
-      this.isShowOverlayWindowBorders
-    );
+    this.store.isShowOverlayWindowBorders[overlayId] = state;
   }
 
   /*************************************************************
@@ -774,11 +820,12 @@ export class DesktopWebOverlayer {
   private sendOverlayInfoToOverlayWindow(webContents: WebContents) {
     webContents.send(
       IpcEventKeys.GetWebOverlayList,
-      this.overlays,
-      this.activeOverlayIds,
-      this.isIgnoreOverlayWindowMouseEvents,
-      this.isEnableOverlayWindowMoves,
-      this.isShowOverlayWindowBorders
+      this.store.overlays,
+      this.store.activeOverlayIds,
+      this.store.isIgnoreOverlayWindowMouseEvents,
+      this.store.isEnableOverlayWindowMoves,
+      this.store.isShowOverlayWindowBorders,
+      this.store.settingFileHistory
     );
   }
 }

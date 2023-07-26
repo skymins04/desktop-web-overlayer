@@ -2,7 +2,7 @@
   "name": "desktop-web-overlayer",
   "version": "1.0.3",
   "description": "",
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
     "build": "ultra -r build",
     "start": "pnpm --filter @desktop-web-overlayer/electron start",

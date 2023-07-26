@@ -4,7 +4,7 @@ import {
   ExportedOverlays,
   WindowPosition,
   WindowSize,
-} from "./electronStorage";
+} from "@modules";
 
 export const OverlayWindowPositionValidationSchema: ZodObject<
   Record<keyof WindowPosition, ZodNumber>
@@ -29,16 +29,16 @@ export const ExportedOverlayValidationSchema: ZodObject<
   opacity: z.number().min(0).max(100),
   fontSize: z.number().min(0).max(100),
   isEnableFontSize: z.boolean(),
-  overlayPosition: OverlayWindowPositionValidationSchema,
-  overlaySize: OverlayWindowSizeValidationSchema,
-  isIgnoreOverlayWindowMouseEvent: z.boolean(),
-  isEnableOverlayWindowMove: z.boolean(),
-  isShowOverlayWindowBorder: z.boolean(),
+  overlayPosition: OverlayWindowPositionValidationSchema.optional(),
+  overlaySize: OverlayWindowSizeValidationSchema.optional(),
+  isIgnoreOverlayWindowMouseEvent: z.boolean().optional(),
+  isEnableOverlayWindowMove: z.boolean().optional(),
+  isShowOverlayWindowBorder: z.boolean().optional(),
 });
 
 export const ExportedOverlaysValidationSchema: ZodObject<
   Record<keyof ExportedOverlays, any>
 > = z.object({
-  overlays: ExportedOverlayValidationSchema,
+  overlays: z.record(ExportedOverlayValidationSchema),
   activeOverlayIds: z.array(z.string()),
 });

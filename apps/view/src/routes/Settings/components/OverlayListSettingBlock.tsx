@@ -36,9 +36,11 @@ export const OverlayListSettingBlock = () => {
 
   const getPageCount = (itemCount: number) =>
     Math.ceil(itemCount / overlayCropListItemMaxCount);
-  const totalPageCount = getPageCount(Object.keys(overlays).length);
+  const overlayCount = Object.keys(overlays).length;
+  const totalPageCount = getPageCount(overlayCount);
   const isAvailableIncrease = currentPage < totalPageCount;
   const isAvailableDecrease = currentPage > 1;
+  const isEmptyOverlay = overlayCount !== 0;
 
   const handleIgnoreOverlayWindowMouseEvent = (key: string) => () =>
     window.toggleIgnoreOverlayWindowMouseEventById(key);
@@ -114,47 +116,51 @@ export const OverlayListSettingBlock = () => {
         description={SETTINGS_MENU_DESCRIPTION.overlayList}
         footerClassName="justify-between"
         footer={
-          <>
-            <Button
-              className="px-0 w-[90px]"
-              size="xs"
-              color="blue"
-              variant="outline"
-              onClick={handleToggleListExpand}
-            >
-              {showAllList ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-              {showAllList ? "접어보기" : "펼쳐보기"}
-            </Button>
-            {!showAllList && (
-              <div className="flex justify-end items-center gap-[10px]">
-                <Button
-                  className="w-[30px] px-0"
-                  size="xs"
-                  color="blue"
-                  variant="outline"
-                  onClick={handleDecreaseCurrentPage}
-                  disabled={!isAvailableDecrease}
-                >
-                  <KeyboardArrowLeft />
-                </Button>
-                <div className="flex justify-center items-center gap-[8px] text-gray-500">
-                  <span className="font-bold text-gray-700">{currentPage}</span>
-                  <span>/</span>
-                  <span>{totalPageCount}</span>
+          isEmptyOverlay && (
+            <>
+              <Button
+                className="px-0 w-[90px]"
+                size="xs"
+                color="blue"
+                variant="outline"
+                onClick={handleToggleListExpand}
+              >
+                {showAllList ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+                {showAllList ? "접어보기" : "펼쳐보기"}
+              </Button>
+              {!showAllList && (
+                <div className="flex justify-end items-center gap-[10px]">
+                  <Button
+                    className="w-[30px] px-0"
+                    size="xs"
+                    color="blue"
+                    variant="outline"
+                    onClick={handleDecreaseCurrentPage}
+                    disabled={!isAvailableDecrease}
+                  >
+                    <KeyboardArrowLeft />
+                  </Button>
+                  <div className="flex justify-center items-center gap-[8px] text-gray-500">
+                    <span className="font-bold text-gray-700">
+                      {currentPage}
+                    </span>
+                    <span>/</span>
+                    <span>{totalPageCount}</span>
+                  </div>
+                  <Button
+                    className="w-[30px] px-0"
+                    size="xs"
+                    color="blue"
+                    variant="outline"
+                    onClick={handleIncreaseCurrentPage}
+                    disabled={!isAvailableIncrease}
+                  >
+                    <KeyboardArrowRight />
+                  </Button>
                 </div>
-                <Button
-                  className="w-[30px] px-0"
-                  size="xs"
-                  color="blue"
-                  variant="outline"
-                  onClick={handleIncreaseCurrentPage}
-                  disabled={!isAvailableIncrease}
-                >
-                  <KeyboardArrowRight />
-                </Button>
-              </div>
-            )}
-          </>
+              )}
+            </>
+          )
         }
       >
         {Object.entries(overlays)
