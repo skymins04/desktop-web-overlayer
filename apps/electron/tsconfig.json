@@ -5,7 +5,14 @@
     "outDir": "dist",
     "strict": true,
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@utils": ["./src/utils/index"],
+      "@constants": ["./src/constants/index"],
+      "@modules": ["./src/modules/index"],
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["./**/*"]
 }

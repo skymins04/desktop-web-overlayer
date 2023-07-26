@@ -1,7 +1,7 @@
 {
   "name": "@desktop-web-overlayer/view",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -18,7 +18,7 @@
     "@mantine/hooks": "^6.0.16",
     "@mantine/notifications": "^6.0.16",
     "@mui/icons-material": "^5.14.0",
-    "@mui/material": "^5.14.0",
+    "@mui/material": "^5.14.1",
     "classnames": "^2.3.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

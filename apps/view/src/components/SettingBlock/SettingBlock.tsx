@@ -6,6 +6,7 @@ export type SettingBlockProps = {
   className?: string;
   footer?: ReactNode;
   footerClassName?: string;
+  contentClassName?: string;
   title?: string;
   description?: string;
   id: string;
@@ -41,7 +42,12 @@ export const SettingBlock = ({
           className
         )}
       >
-        <div className="w-full relative p-[20px] bg-white flex flex-col justify-center items-center gap-[10px] rounded-t-[6px]">
+        <div
+          className={classNames(
+            "w-full relative p-[20px] bg-white flex flex-col justify-center items-center gap-[10px] rounded-t-[6px]",
+            !footer && "rounded-b-[6px]"
+          )}
+        >
           {children}
         </div>
         {footer && (
