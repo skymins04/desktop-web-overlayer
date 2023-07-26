@@ -52,11 +52,11 @@ export const ImportSettingsSettingBlock = () => {
 
   useEffect(() => {
     const handleGetSettingFileHistory = (
-      a: any,
-      b: any,
-      c: any,
-      d: any,
-      e: any,
+      _a: any,
+      _b: any,
+      _c: any,
+      _d: any,
+      _e: any,
       history: string[]
     ) => {
       setSettingFileHistory(history);
