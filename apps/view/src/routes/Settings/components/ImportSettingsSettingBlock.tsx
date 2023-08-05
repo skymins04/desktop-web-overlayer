@@ -59,7 +59,7 @@ export const ImportSettingsSettingBlock = () => {
       _e: any,
       history: string[]
     ) => {
-      setSettingFileHistory(history);
+      setSettingFileHistory(history || []);
     };
     window.addGetOverlayListListener(handleGetSettingFileHistory);
     window.getOverlayList();
